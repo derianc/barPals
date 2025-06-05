@@ -66,7 +66,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       setLoading(true);
 
       // 2) Upload local file to storage → get public URL
-      const publicUrl = await uploadReceipt(photo.uri, "receipts", "images");
+      const publicUrl = await uploadReceipt(photo.uri, "user-receipts");
 
       // 3) Call analyzeReceipt(documentUrl: string)
       const analysisResult = await analyzeReceipt(publicUrl);
