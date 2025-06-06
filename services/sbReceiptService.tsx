@@ -19,7 +19,8 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
     .select("id")
     .eq("merchant_name", receiptData.merchantName)
     .eq("transaction_date", receiptData.transactionDate)
-    .eq("transaction_total", receiptData.total)
+    .eq("transaction_time", receiptData.transactionTime)
+    .eq("total", receiptData.total)
     .limit(1);
 
   if (findError) {
