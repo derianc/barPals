@@ -38,13 +38,13 @@ const Hourly = () => {
   // 1) Define your timeframe here. Change as needed:
   // const timeframe: Timeframe = "day"; // Options: "day", "7days", "30days", "all"
   const timeframe: Timeframe =
-  selectedTabIndex === 0
-    ? "day"
-    : selectedTabIndex === 1
-    ? "7days"
-    : selectedTabIndex === 2
-    ? "30days"
-    : "all";
+    selectedTabIndex === 0
+      ? "7days"
+      : selectedTabIndex === 1
+        ? "30days"
+        : selectedTabIndex === 2
+          ? "all"
+          : "all";
 
 
   // 2) State for “current” metrics
@@ -64,7 +64,7 @@ const Hourly = () => {
   const [spendLoading, setSpendLoading] = useState<boolean>(true);
 
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
-  
+
   // 5) Fetch both “current” and “previous” metrics whenever timeframe changes
   useEffect(() => {
     fetchCurrentAndPreviousMetrics();
@@ -328,6 +328,8 @@ const Hourly = () => {
         console.error("Error loading spend buckets:", error);
         setSpendData([]);
       } else {
+        //console.log("✅ spendData shape check", data.map((d) => ({ label: d.label, total: d.total })));
+
         setSpendData(data);
       }
     } catch (e) {
@@ -339,17 +341,13 @@ const Hourly = () => {
   };
 
   useEffect(() => {
-    getUniqueVisitsByWeekday()
+    getUniqueVisitsByWeekday(timeframe)
       .then(setDailyVisits)
       .catch((err) => {
         console.error("Failed to fetch daily visits:", err);
         setDailyVisits([]);
       });
-  }, []);
-
-  useEffect(() => {
-    hasHourlyTabChild1Animated.current = true;
-  }, []);
+  }, [timeframe]);
 
   useFocusEffect(
     useCallback(() => {
@@ -357,8 +355,12 @@ const Hourly = () => {
       fetchCurrentAndPreviousMetrics();
       loadSpendBuckets();
       getUniqueVisitsByWeekday();
-    }, [])
+    }, [timeframe])
   );
+
+  useEffect(() => {
+    hasHourlyTabChild1Animated.current = true;
+  }, []);
 
   // 7) Compare “current” vs “previous” to decide arrow directions
   const totalUp = (currentTotalSpend ?? 0) > (previousTotalSpend ?? 0);
@@ -465,7 +467,13 @@ const Hourly = () => {
 
       {/* Daily Visits Card */}
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
+        {spendLoading ? (
+          <Text className="text-typography-400 text-center my-4">
+            Loading chart…
+          </Text>
+        ) : (
           <VisitBarCard data={dailyVisits.map(d => ({ day: d.day, count: d.visitCount }))} />
+        )}
       </VStack>
 
     </VStack>

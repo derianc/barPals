@@ -1,6 +1,5 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
-import type { PostgrestError } from "@supabase/supabase-js";
 
 export async function insertReceiptDetails(receiptData: TransactionData): Promise<void> {
   // 1. Get current authenticated user
@@ -19,11 +18,11 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
     .from("user_receipts")
     .insert({
       user_id: user.id,
-      receipt_url: receiptData.receiptUri,
-      merchant_name: receiptData.merchantName,
-      merchant_address: receiptData.merchantAddress,
-      transaction_date: receiptData.transactionDate,
-      transaction_time: receiptData.transactionTime,
+      receipt_url: sanitizeText(receiptData.receiptUri),
+      merchant_name: sanitizeText(receiptData.merchantName),
+      merchant_address: sanitizeText(receiptData.merchantAddress),
+      transaction_date: parseDate(receiptData.transactionDate),
+      transaction_time: parseDate(receiptData.transactionTime),
       total: receiptData.total,
     })
     .select()
@@ -37,7 +36,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   // 3. Insert line items
   const itemInserts = receiptData.Items.map((item) => ({
     receipt_id: receiptInsert.id,
-    item_name: item.name,
+    item_name: sanitizeText(item.name),
     quantity: parseInt(item.quantity || "1"),
     price: item.price,
   }));
@@ -48,6 +47,19 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
 
   if (itemsError) {
     console.error("❌ Failed to insert receipt items:", itemsError);
+
+    // 🔥 Rollback: delete the inserted receipt
+    const { error: deleteError } = await supabase
+      .from("user_receipts")
+      .delete()
+      .eq("id", receiptInsert.id);
+
+    if (deleteError) {
+      console.error("⚠️ Failed to rollback receipt after items insert failed:", deleteError);
+    } else {
+      console.log("♻️ Rolled back receipt insert due to item insert failure");
+    }
+
     throw new Error("Failed to insert receipt items");
   }
 
@@ -291,34 +303,47 @@ export async function getSpendBuckets(
   // 2. Determine start date
   const now = new Date();
   let start: Date;
-  switch (timeframe) {
-    case "day":
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
-      break;
-    case "7days":
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+
+  if (timeframe === "all") {
+    const { data: oldest, error: oldestError } = await supabase
+      .from("user_receipts")
+      .select("transaction_date")
+      .eq("user_id", user.id)
+      .order("transaction_date", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (oldestError || !oldest?.transaction_date) {
+      console.error("❌ Failed to get oldest transaction:", oldestError);
+      return { data: [], error: oldestError ?? new Error("No transaction found") };
+    }
+
+    start = new Date(oldest.transaction_date);
+    start.setHours(0, 0, 0, 0);
+  } else {
+    start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+
+    if (timeframe === "7days") {
       start.setDate(start.getDate() - 6);
-      break;
-    case "30days":
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+    } else if (timeframe === "30days") {
       start.setDate(start.getDate() - 29);
-      break;
-    case "all":
-    default:
-      start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+    }
   }
 
   // 3. Fetch receipts in the date range for this user
-  const { data: receipts, error } = await supabase
+  let query = supabase
     .from("user_receipts")
     .select("transaction_date, total")
-    .eq("user_id", user.id)
-    .gte("transaction_date", start.toISOString())
-    .order("transaction_date", { ascending: true });
+    .eq("user_id", user.id);
+
+  if (timeframe !== "all") {
+    query = query.gte("transaction_date", start.toISOString());
+  }
+
+  query = query.order("transaction_date", { ascending: true });
+
+  const { data: receipts, error } = await query;
 
   if (error) {
     console.error("❌ Error fetching receipts for spend buckets:", error);
@@ -330,17 +355,14 @@ export async function getSpendBuckets(
   const bucketMap: BucketMap = {};
 
   if (timeframe === "day") {
-    // Create 24 hourly buckets: "12:00 AM", "01:00 AM", ..., "11:00 PM"
     for (let hour = 0; hour < 24; hour++) {
       const label = _formatHourBucket(hour);
       bucketMap[label] = 0;
     }
   } else {
-    // Create daily buckets for each day from `start` to today
-    const totalDays = timeframe === "7days" ? 7 : 30;
-    for (let i = 0; i < totalDays; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
+    const end = new Date();
+    end.setHours(0, 0, 0, 0);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const yyyy = d.getFullYear();
       const mm = (d.getMonth() + 1).toString().padStart(2, "0");
       const dd = d.getDate().toString().padStart(2, "0");
@@ -353,11 +375,10 @@ export async function getSpendBuckets(
   (receipts ?? []).forEach((r) => {
     const created = new Date(r.transaction_date);
     if (timeframe === "day") {
-      const hour = created.getHours(); // 0–23
+      const hour = created.getHours();
       const label = _formatHourBucket(hour);
       bucketMap[label] = (bucketMap[label] || 0) + (r.total || 0);
     } else {
-      // Daily bucket: "YYYY-MM-DD"
       const yyyy = created.getFullYear();
       const mm = (created.getMonth() + 1).toString().padStart(2, "0");
       const dd = created.getDate().toString().padStart(2, "0");
@@ -385,28 +406,66 @@ export async function getSpendBuckets(
   return { data: result, error: null };
 }
 
+
 export interface WeekdayVisit {
-  day: string; // "S", "M", "T", etc.
+  day: string;
   visitCount: number;
 }
 
-export async function getUniqueVisitsByWeekday(): Promise<WeekdayVisit[]> {
-  const { data, error } = await supabase
-    .from("user_receipts")
-    .select("transaction_date");
+export async function getUniqueVisitsByWeekday(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<WeekdayVisit[]> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("🔐 Failed to get authenticated user:", userError);
+    throw new Error("User not authenticated");
+  }
+
+  const now = new Date();
+  let startDate: Date | null = null;
+
+  switch (timeframe) {
+    case "day":
+      startDate = new Date(now.setHours(0, 0, 0, 0));
+      break;
+    case "7days":
+      startDate = new Date(now.setDate(now.getDate() - 7));
+      break;
+    case "30days":
+      startDate = new Date(now.setDate(now.getDate() - 30));
+      break;
+    case "all":
+    default:
+      startDate = null;
+  }
+
+  // Build query
+  let query = supabase.from("user_receipts")
+    .select("transaction_date")
+    .eq("user_id", user.id);
+
+  // Only filter by date if not "all"
+  if (startDate) {
+    query = query.gte("transaction_date", startDate.toISOString().split("T")[0]);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Error fetching user_receipts:", error);
     return [];
   }
 
+  // Count visits by weekday
   const weekdayCounts: Record<number, number> = {
     0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0,
   };
 
   (data ?? []).forEach((r) => {
     const date = new Date(r.transaction_date);
-    const weekday = date.getDay(); // 0 = Sunday ... 6 = Saturday
+    const weekday = date.getDay();
     weekdayCounts[weekday] += 1;
   });
 
@@ -420,15 +479,6 @@ export async function getUniqueVisitsByWeekday(): Promise<WeekdayVisit[]> {
   }));
 }
 
-
-//
-// ─── PRIVATE HELPERS ────────────────────────────────────────────────────────────
-//
-
-/**
- * Convert a 24-hour integer (0–23) into a label string "hh:00 AM/PM".
- * e.g. 0 → "12:00 AM", 13 → "01:00 PM"
- */
 function _formatHourBucket(hour24: number): string {
   const ampm = hour24 >= 12 ? "PM" : "AM";
   const hour12Raw = hour24 % 12 === 0 ? 12 : hour24 % 12;
@@ -436,10 +486,6 @@ function _formatHourBucket(hour24: number): string {
   return `${hourStr}:00 ${ampm}`;
 }
 
-/**
- * Given a label "hh:00 AM/PM", return the numeric hour (0–23).
- * e.g. "12:00 AM" → 0, "01:00 PM" → 13
- */
 function _hourLabelToNumber(label: string): number {
   const [timePart, ampm] = label.split(" ");
   const [hStr] = timePart.split(":");
@@ -451,4 +497,24 @@ function _hourLabelToNumber(label: string): number {
     if (h !== 12) h += 12;
   }
   return h;
+}
+
+function sanitizeText(input?: string | null): string | null {
+  if (!input) return null;
+  return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
+}
+
+function parseDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+
+  // Extract MM/DD/YYYY or MM-DD-YYYY from raw string
+  const match = raw.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+
+  if (!match) {
+    console.warn("⚠️ Could not parse date from string:", raw);
+    return null;
+  }
+
+  const [, month, day, year] = match;
+  return `${year}-${month}-${day}`; // PostgreSQL DATE format
 }

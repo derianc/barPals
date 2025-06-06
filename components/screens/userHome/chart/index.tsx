@@ -32,28 +32,29 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
   //    Otherwise, fall back to a dummy 7-day array.
   //
   const lineData =
-    data && data.length > 0
-      ? [
-          {}, // left padding
-          ...data.map((bucket) => {
-            const rawLabel = bucket.label;
-            let displayLabel: string;
+  data && data.length > 0
+    ? (() => {
+        const points = data.map((bucket) => {
+          const rawLabel = bucket.label;
+          let displayLabel: string;
 
-            // If it contains ":", treat it as hourly (keep as-is)
-            if (rawLabel.includes(":")) {
-              displayLabel = rawLabel; // e.g. "12:00 AM"
-            } else {
-              // daily: "YYYY-MM-DD" → "MM-DD"
-              displayLabel = rawLabel.slice(5);
-            }
+          if (rawLabel.includes(":")) {
+            displayLabel = rawLabel;
+          } else {
+            displayLabel = rawLabel.slice(5); // "YYYY-MM-DD" → "MM-DD"
+          }
 
-            return {
-              value: bucket.total,
-              label: displayLabel,
-            };
-          }),
-          {}, // right padding
-        ]
+          return {
+            value: typeof bucket.total === "number" ? bucket.total : 0,
+            label: displayLabel,
+            dataPointColor: bucket.total === 0 ? "#ccc" : "#b68cd4",
+          };
+        });
+
+        const trailingPoint = points.length > 0 ? points[points.length - 1] : { value: 0 };
+
+        return [{}, ...points, trailingPoint]; // padding + points + last point repeated
+      })()
       : [
           {}, // fallback if no data
           { value: 18, label: "06-01" },
@@ -140,7 +141,7 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
                 areaChart
                 data={lineData}
                 initialSpacing={0}
-                hideDataPoints
+                hideDataPoints={false}
                 rulesColor={colorMode === "dark" ? "#414141" : "#d3d3d3"}
                 rulesType="solid"
                 color="#b68cd4"

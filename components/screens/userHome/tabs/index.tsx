@@ -7,11 +7,6 @@ import { WeatherTabContext } from "@/contexts/user-home-context";
 
 const tabs = [
   {
-    id: 0,
-    path: "/",
-    label: "Today",
-  },
-  {
     id: 1,
     path: "/days",
     label: "Last 7 Days",
@@ -20,6 +15,11 @@ const tabs = [
     id: 2,
     path: "/monthly",
     label: "Last 30 Days",
+  },
+  {
+    id: 3,
+    path: "/",
+    label: "All",
   },
 ];
 

@@ -72,11 +72,13 @@ const VisitProgressBar = ({
   const progressAnim = useSharedValue(0);
 
   useEffect(() => {
-    if (animated) {
-      progressAnim.value = withTiming(percent, { duration: 500 });
-      incrementAnimation();
-    }
-  }, [animated]);
+  if (animated) {
+    progressAnim.value = withTiming(percent, { duration: 500 });
+    incrementAnimation();
+  } else {
+    progressAnim.value = percent;
+  }
+}, [animated, percent]);
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressAnim.value}%`,
