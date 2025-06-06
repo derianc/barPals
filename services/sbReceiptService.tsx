@@ -2,7 +2,7 @@ import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 
 export async function insertReceiptDetails(receiptData: TransactionData): Promise<void> {
-  // 1. Get current authenticated user
+  // 0. Get current authenticated user
   const {
     data: { user },
     error: userError,
@@ -11,6 +11,25 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   if (userError || !user) {
     console.error("🔐 Failed to get authenticated user:", userError);
     throw new Error("User not authenticated");
+  }
+
+  // 1. Check for duplicates
+  const { data: existing, error: findError } = await supabase
+    .from("user_receipts")
+    .select("id")
+    .eq("merchant_name", receiptData.merchantName)
+    .eq("transaction_date", receiptData.transactionDate)
+    .eq("transaction_total", receiptData.total)
+    .limit(1);
+
+  if (findError) {
+    console.error("🔍 Error checking for duplicates:", findError);
+    throw new Error("Error checking for duplicate receipt");
+  }
+
+  if (existing && existing.length > 0) {
+    console.warn("⚠️ Duplicate receipt detected. Skipping insertion.");
+    throw new Error("Duplicate Receipt");
   }
 
   // 2. Insert into user_receipts
@@ -22,7 +41,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
       merchant_name: sanitizeText(receiptData.merchantName),
       merchant_address: sanitizeText(receiptData.merchantAddress),
       transaction_date: parseDate(receiptData.transactionDate),
-      transaction_time: parseDate(receiptData.transactionTime),
+      transaction_time: receiptData.transactionTime,
       total: receiptData.total,
     })
     .select()
