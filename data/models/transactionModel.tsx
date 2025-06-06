@@ -1,7 +1,7 @@
 export interface TransactionItem {
   name: string;
   quantity: string;
-  price: string;
+  price: number | null;
 }
 
 export interface TransactionData {

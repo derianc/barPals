@@ -20,6 +20,7 @@ import {
 } from "@azure/ai-form-recognizer";
 import { TransactionData, TransactionItem } from "@/data/models/transactionModel";
 import { uploadReceipt } from "@/services/sbFileService";
+import { insertReceiptDetails } from "@/services/sbReceiptService";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -74,6 +75,9 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = extractReceiptDetails(analysisResult, publicUrl);
 
+      // 5) Save to Supabase
+      await insertReceiptDetails(txData);
+
       // 5) Save to state for rendering
       setTransactionData(txData);
     } catch (err: any) {
@@ -126,7 +130,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       Items: items.values.map((item: any): TransactionItem => ({
         name: item.properties?.Description?.content || "Unknown Item",
         quantity: item.properties?.Quantity?.content || "1",
-        price: item.properties?.TotalPrice?.content || "0.00",
+        price: formatPrice(item.properties?.TotalPrice?.content) || 0,
       }))
     };
 
