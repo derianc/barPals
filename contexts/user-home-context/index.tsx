@@ -1,7 +1,20 @@
 import React, { createContext, useRef, useState } from "react";
 import { View } from "react-native";
 
-const WeatherTabContext = createContext({});
+interface WeatherTabContextType {
+  isChildVisible: boolean;
+  setIsChildVisible: (v: boolean) => void;
+  selectedTabIndex: number;
+  setSelectedTabIndex: (v: number) => void;
+  scrollViewRef: React.RefObject<any>;
+  hasDaysTabAnimated: React.MutableRefObject<boolean>;
+  hasHourlyTabChild1Animated: React.MutableRefObject<boolean>;
+  hasProgressBarAnimated: React.MutableRefObject<number>;
+  childRefs: { ref: React.RefObject<View | null>; isVisible: boolean }[];
+  setChildRefs: React.Dispatch<React.SetStateAction<{ ref: React.RefObject<View | null>; isVisible: boolean }[]>>;
+}
+
+const WeatherTabContext = createContext({} as WeatherTabContextType);
 
 const WeatherTabProvider = ({ children }: { children: React.ReactNode }) => {
   const [isChildVisible, setIsChildVisible] = useState(false);

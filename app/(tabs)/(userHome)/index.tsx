@@ -1,6 +1,5 @@
 // components/screens/userHome/index.tsx
 
-import { ScrollView, RefreshControl } from "react-native";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
@@ -8,7 +7,7 @@ import { Text } from "@/components/ui/text";
 import { Icon, ClockIcon } from "@/components/ui/icon";
 import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
-import { WeatherTabContext } from "@/contexts/weather-screen-context";
+import { WeatherTabContext } from "@/contexts/user-home-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { supabase } from "@/supabase";
 import {
@@ -33,8 +32,20 @@ const Hourly = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
   const AnimatedVStack = Animated.createAnimatedComponent(VStack);
 
+  const { selectedTabIndex } = useContext(WeatherTabContext);
+
+
   // 1) Define your timeframe here. Change as needed:
-  const timeframe: Timeframe = "all"; // Options: "day", "7days", "30days", "all"
+  // const timeframe: Timeframe = "day"; // Options: "day", "7days", "30days", "all"
+  const timeframe: Timeframe =
+  selectedTabIndex === 0
+    ? "day"
+    : selectedTabIndex === 1
+    ? "7days"
+    : selectedTabIndex === 2
+    ? "30days"
+    : "all";
+
 
   // 2) State for “current” metrics
   const [currentTotalSpend, setCurrentTotalSpend] = useState<number | null>(null);
@@ -53,9 +64,7 @@ const Hourly = () => {
   const [spendLoading, setSpendLoading] = useState<boolean>(true);
 
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
-  const maxCount = Math.max(...dailyVisits.map((v) => v.visitCount));
-
-
+  
   // 5) Fetch both “current” and “previous” metrics whenever timeframe changes
   useEffect(() => {
     fetchCurrentAndPreviousMetrics();

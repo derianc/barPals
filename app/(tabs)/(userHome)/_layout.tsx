@@ -8,7 +8,7 @@ import useChildVisibility from "@/hooks/useChildVisibility";
 import {
   WeatherTabProvider,
   WeatherTabContext,
-} from "@/contexts/weather-screen-context";
+} from "@/contexts/user-home-context";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

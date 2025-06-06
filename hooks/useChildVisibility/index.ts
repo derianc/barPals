@@ -1,6 +1,6 @@
 import { useEffect, useContext } from "react";
 import { Dimensions } from "react-native";
-import { WeatherTabContext } from "@/contexts/weather-screen-context";
+import { WeatherTabContext } from "@/contexts/user-home-context";
 
 const useChildVisibility = () => {
   const { scrollViewRef, childRefs, setChildRefs, selectedTabIndex }: any =

@@ -9,7 +9,7 @@ import { Box } from "@/components/ui/box";
 import { Text } from "@/components/ui/text";
 import { LineChart } from "react-native-gifted-charts";
 import { ThemeContext } from "@/contexts/theme-context";
-import { WeatherTabContext } from "@/contexts/weather-screen-context";
+import { WeatherTabContext } from "@/contexts/user-home-context";
 
 // Re‐import SpendBucket
 import type { SpendBucket } from "@/services/sbReceiptService";

@@ -3,7 +3,7 @@ import { VStack } from "@/components/ui/vstack";
 import DaysCard from "@/components/screens/userHome/days-card";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { DailyForecastData } from "@/data/screens/weather/days-tab";
-import { WeatherTabContext } from "@/contexts/weather-screen-context";
+import { WeatherTabContext } from "@/contexts/user-home-context";
 
 const Days = () => {
   const { hasDaysTabAnimated }: any = useContext(WeatherTabContext);

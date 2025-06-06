@@ -8,7 +8,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { WeatherTabContext } from "@/contexts/weather-screen-context";
+import { WeatherTabContext } from "@/contexts/user-home-context";
 
 interface IRainCard {
   time: number;
