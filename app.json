@@ -17,7 +17,7 @@
         "backgroundColor": "#ffffff"
       },
       "softwareKeyboardLayoutMode": "pan",
-      "package": "com.derianc.barPals"
+      "package": "com.derianc.BarPals"
     },
     "web": {
       "bundler": "metro",

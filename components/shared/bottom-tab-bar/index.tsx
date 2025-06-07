@@ -10,7 +10,9 @@ import {
   ActiveMapsIcon,
   ActiveSettingsIcon,
   HomeIcon,
-  ActiveHomeIcon
+  ActiveHomeIcon,
+  FeedIcon,
+  ActiveFeedIcon,
 } from "@/components/shared/icon";
 import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
@@ -36,11 +38,18 @@ const tabItems: TabItem[] = [
   },
 
   {
-    name: "location",
-    label: "Location",
-    path: "location",
-    inActiveIcon: LocationIcon,
-    icon: ActiveLocationIcon,
+    name: "(userFeed)",
+    label: "Feed",
+    path: "(userFeed)/index",
+    inActiveIcon: FeedIcon,
+    icon: ActiveFeedIcon,
+  },
+  {
+    name: "camera",
+    label: "Camera",
+    path: "camera",
+    inActiveIcon: CameraIcon,
+    icon: CameraIcon,
   },
   {
     name: "maps",
@@ -56,13 +65,7 @@ const tabItems: TabItem[] = [
     inActiveIcon: SettingsIcon,
     icon: ActiveSettingsIcon,
   },
-  {
-    name: "camera",
-    label: "Camera",
-    path: "camera",
-    inActiveIcon: CameraIcon,
-    icon: CameraIcon,
-  },
+  
 ];
 
 function BottomTabBar(props: BottomTabBarProps) {

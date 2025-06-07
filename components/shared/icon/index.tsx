@@ -131,3 +131,27 @@ const ActiveHomeIcon = createIcon({
   ),
 });
 export { ActiveHomeIcon };
+
+const FeedIcon = createIcon({
+  viewBox: "0 0 24 24",
+  path: (
+    <>
+      <Path d="M4 6H20" />
+      <Path d="M4 12H16" />
+      <Path d="M4 18H12" />
+    </>
+  ),
+});
+export { FeedIcon };
+
+const ActiveFeedIcon = createIcon({
+  viewBox: "0 0 24 24",
+  path: (
+    <>
+      <Path d="M4 6H20" />
+      <Path d="M4 12H20" />
+      <Path d="M4 18H20" />
+    </>
+  ),
+});
+export { ActiveFeedIcon };

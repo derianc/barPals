@@ -86,6 +86,42 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   console.log("✅ Receipt and items successfully inserted");
 }
 
+export async function getAllReceiptsForUser() {
+  // 1. Get current authenticated user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("🔐 Failed to get authenticated user:", userError);
+    throw new Error("User not authenticated");
+  }
+
+  // 2. Query receipts with embedded item count
+  const { data, error } = await supabase
+    .from("user_receipts")
+    .select(`*, user_receipt_items(count)`)
+    .eq("user_id", user.id)
+    .order("transaction_date", { ascending: false })
+    .order("transaction_time", { ascending: false });
+
+  if (error) {
+    console.error("❌ Failed to fetch receipts:", error);
+    throw new Error("Failed to fetch user receipts");
+  }
+
+  // 3. Map item_count into root object
+  const receipts = data.map((receipt: any) => ({
+    ...receipt,
+    item_count: receipt.user_receipt_items[0]?.count ?? 0,
+    isVerified: Math.random() < 0.5,
+  }));
+
+  return receipts;
+}
+
+
 export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
   const {
     data: { user },
@@ -329,7 +365,7 @@ export async function getSpendBuckets(
       .from("user_receipts")
       .select("transaction_date")
       .eq("user_id", user.id)
-      .order("transaction_date", { ascending: true })
+      .order("transaction_date", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -527,14 +563,25 @@ function sanitizeText(input?: string | null): string | null {
 function parseDate(raw: string | null | undefined): string | null {
   if (!raw) return null;
 
-  // Extract MM/DD/YYYY or MM-DD-YYYY from raw string
-  const match = raw.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  // Match MM/DD/YY, M/D/YY, MM-DD-YYYY, etc.
+  const match = raw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
 
   if (!match) {
     console.warn("⚠️ Could not parse date from string:", raw);
     return null;
   }
 
-  const [, month, day, year] = match;
-  return `${year}-${month}-${day}`; // PostgreSQL DATE format
+  let [_, month, day, year] = match;
+
+  // Pad month/day to 2 digits
+  if (month.length === 1) month = "0" + month;
+  if (day.length === 1) day = "0" + day;
+
+  // Convert 2-digit years (e.g. 25 → 2025)
+  if (year.length === 2) {
+    const intYear = parseInt(year, 10);
+    year = intYear < 50 ? `20${year}` : `19${year}`;
+  }
+
+  return `${year}-${month}-${day}`; // YYYY-MM-DD
 }

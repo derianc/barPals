@@ -1,5 +1,5 @@
 export interface TransactionItem {
-  name: string;
+  item_name: string;
   quantity: string;
   price: number | null;
 }

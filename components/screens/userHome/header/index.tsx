@@ -6,13 +6,27 @@ import { Box } from "@/components/ui/box";
 import { ImageBackground } from "@/components/ui/image-background";
 import { Image } from "@/components/ui/image";
 import { ThemeContext } from "@/contexts/theme-context";
+import { format } from "date-fns";
 import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+export function useUserMetrics() {
+  // Replace with live queries from Supabase
+  return {
+    totalSpendToday: 54.2,
+    topVenue: "The Tipsy Bar",
+    visitStreak: 10,
+    displayName: "Derian Conteh-Morgan",
+  };
+}
+
 const Header = ({ height }: { height: number }) => {
   const { colorMode }: any = useContext(ThemeContext);
+  const now = new Date();
+
+  const { totalSpendToday, topVenue, visitStreak, displayName } = useUserMetrics();
 
   // Update all interpolation ranges to match new height values
   const locationTextStyle = useAnimatedStyle(() => ({
@@ -83,11 +97,15 @@ const Header = ({ height }: { height: number }) => {
       <ImageBackground
         source={
           colorMode === "dark"
-            ? require("@/assets/images/weather-bg-dark.webp")
+            ? require("@/assets/images/barpals-header.jpg")
             : require("@/assets/images/weather-bg-light.webp")
         }
         className="h-full"
       >
+        <Box
+          className="absolute top-0 left-0 right-0 bottom-0"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }} // adjust opacity as needed
+        />
         <Animated.View
           style={[
             {
@@ -116,7 +134,7 @@ const Header = ({ height }: { height: number }) => {
                   locationTextStyle,
                 ]}
               >
-                Last Name, First Name
+                {displayName ?? "Welcome back!"}
               </Animated.Text>
               <Animated.Text
                 style={[
@@ -127,7 +145,7 @@ const Header = ({ height }: { height: number }) => {
                   dateTextStyle,
                 ]}
               >
-                January 18, 16:14
+                {format(now, "MMMM d, h:mm a")}
               </Animated.Text>
             </VStack>
             <Animated.View
@@ -161,28 +179,6 @@ const Header = ({ height }: { height: number }) => {
               })),
             ]}
           >
-            <Animated.Text
-              style={[
-                {
-                  fontFamily: "dm-sans-regular",
-                  color: colorMode === "dark" ? "#F2EDFF" : "#FEFEFF",
-                },
-                temperatureTextStyle,
-              ]}
-            >
-              13°
-            </Animated.Text>
-            <Animated.Text
-              style={[
-                {
-                  fontFamily: "dm-sans-regular",
-                  color: colorMode === "dark" ? "#F2EDFF" : "#FEFEFF",
-                },
-                feelsLikeTextStyle,
-              ]}
-            >
-              Feels like 12°
-            </Animated.Text>
           </Animated.View>
 
           <Animated.View
@@ -202,23 +198,17 @@ const Header = ({ height }: { height: number }) => {
               })),
             ]}
           >
-            <Animated.View style={imageStyle}>
-              <Image
-                source={require("@/assets/images/thunderstorm.png")}
-                alt="thunderstorm"
-                size="full"
-              />
-            </Animated.View>
             <Animated.Text
               style={[
                 {
-                  fontFamily: "dm-sans-regular",
+                  fontFamily: "dm-sans-medium",
                   color: colorMode === "dark" ? "#F2EDFF" : "#FEFEFF",
+                  fontSize: 16,
+                  textAlign: "center",
                 },
-                weatherTextStyle,
               ]}
             >
-              Thunderstorm
+              {visitStreak > 5 ? "🔥" : "♨️"} {visitStreak} day streak
             </Animated.Text>
           </Animated.View>
         </Animated.View>

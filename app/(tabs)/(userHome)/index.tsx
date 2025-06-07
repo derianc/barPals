@@ -330,7 +330,7 @@ const Hourly = () => {
       } else {
         //console.log("✅ spendData shape check", data.map((d) => ({ label: d.label, total: d.total })));
 
-        setSpendData(data);
+        setSpendData(data.reverse());
       }
     } catch (e) {
       console.error("Unexpected error loading spend data:", e);
@@ -367,7 +367,6 @@ const Hourly = () => {
   const avgSpendUp = (currentAvgSpend ?? 0) > (previousAvgSpend ?? 0);
   const venuesUp = (currentVenuesVisited ?? 0) > (previousVenuesVisited ?? 0);
   const avgItemsUp = (currentAvgItems ?? 0) > (previousAvgItems ?? 0);
-
 
   return (
 
