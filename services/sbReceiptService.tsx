@@ -56,7 +56,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   // 3. Insert line items
   const itemInserts = receiptData.Items.map((item) => ({
     receipt_id: receiptInsert.id,
-    item_name: sanitizeText(item.name),
+    item_name: sanitizeText(item.item_name),
     quantity: parseInt(item.quantity || "1"),
     price: item.price,
   }));
@@ -121,6 +121,19 @@ export async function getAllReceiptsForUser() {
   return receipts;
 }
 
+export async function deleteReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {
+  const { error } = await supabase
+    .from("user_receipts")
+    .delete()
+    .eq("id", receiptId);
+
+  if (error) {
+    console.error("❌ Supabase delete error:", error.message);
+    return { success: false, error };
+  }
+
+  return { success: true };
+}
 
 export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
   const {

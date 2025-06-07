@@ -2,6 +2,7 @@ import React from "react";
 import { HStack } from "@/components/ui/hstack";
 import { VStack } from "@/components/ui/vstack";
 import { Text } from "@/components/ui/text";
+import { Text as AppText } from "@/components/ui/text";
 import { Divider } from "@/components/ui/divider";
 import { Pressable } from "@/components/ui/pressable";
 import Animated, {
@@ -12,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Icon } from "@/components/ui/icon";
 import { Clock, Calendar, CheckCircle, XCircle } from "lucide-react-native";
+import { TransactionItem } from "@/data/models/transactionModel";
 
 interface IReceiptCard {
   receipt_id: number;
@@ -23,6 +25,8 @@ interface IReceiptCard {
   isVerified: boolean;
   isSelected: boolean;
   onSelect: (receipt_id: number) => void;
+  items?: TransactionItem[];
+  isExpanded?: boolean;
 }
 
 const ReceiptCard = ({
@@ -35,6 +39,8 @@ const ReceiptCard = ({
   isVerified = true,
   isSelected,
   onSelect,
+  items = [],
+  isExpanded = false,
 }: IReceiptCard) => {
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
   const scale = useSharedValue(1);
@@ -120,6 +126,18 @@ const ReceiptCard = ({
           {isVerified ? "Verified" : "Unverified"}
         </Text>
       </HStack>
+
+      {isExpanded && Array.isArray(items) && items.length > 0 && (
+        <VStack className="mt-3 bg-background-100 rounded-xl p-3 gap-2">
+          {items.map((item, index) => (
+            <HStack key={index} className="justify-between items-center">
+              <AppText className="flex-1 text-typography-900">{index + 1}. {item.item_name}</AppText>
+              <AppText className="text-typography-600">x{item.quantity}</AppText>
+              <AppText className="text-typography-900">${item.price?.toFixed(2) ?? "—"}</AppText>
+            </HStack>
+          ))}
+        </VStack>
+      )}
 
     </AnimatedPressable>
   );

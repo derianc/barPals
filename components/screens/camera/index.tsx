@@ -128,7 +128,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       duplicateKey: "",
 
       Items: items.values.map((item: any): TransactionItem => ({
-        name: item.properties?.Description?.content || "Unknown Item",
+        item_name: item.properties?.Description?.content || "Unknown Item",
         quantity: item.properties?.Quantity?.content || "1",
         price: formatPrice(item.properties?.TotalPrice?.content) || 0,
       }))
@@ -169,7 +169,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
               <Text style={styles.receiptLine}>Line Items:</Text>
               {transactionData.Items.map((it, idx) => (
                 <Text key={idx} style={styles.receiptLine}>
-                  • {it.name} | Qty: {it.quantity} | ${it.price}
+                  • {it.item_name} | Qty: {it.quantity} | ${it.price}
                 </Text>
               ))}
             </View>

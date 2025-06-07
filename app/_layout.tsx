@@ -12,6 +12,7 @@ import {
 import "@/global.css";
 import { ThemeProvider, ThemeContext } from "@/contexts/theme-context";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const MainLayout = () => {
   const { colorMode }: any = useContext(ThemeContext);
@@ -27,10 +28,12 @@ const MainLayout = () => {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <GluestackUIProvider mode={colorMode}>
-        <StatusBar translucent/>
+        <StatusBar translucent />
         <Slot />
       </GluestackUIProvider>
+    </GestureHandlerRootView>
   );
 }
 

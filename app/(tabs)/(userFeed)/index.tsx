@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { RefreshControl } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { ScrollView } from "@/components/ui/scroll-view";
-import Animated, { FadeInDown, FadeInUp, FadeOutDown, } from "react-native-reanimated";
+import Animated, { FadeInUp, FadeOutDown, } from "react-native-reanimated";
 import CustomHeader from "@/components/shared/custom-header";
-import { getAllReceiptsForUser } from "@/services/sbReceiptService";
+import { deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
 import ReceiptCard from "@/components/screens/userFeed/receipt-card/receiptCard";
 import ReceiptItemCard from "@/components/screens/userFeed/receipt-card/receiptItemCard";
 import { getReceiptItems } from "@/services/sbReceiptItemsService";
-import Modal from "react-native-modal";
-import { TransactionItem } from "@/data/models/transactionModel";
 import { Text as AppText } from "@/components/ui/text";
-
+import 'react-native-gesture-handler';
+import { RectButton, } from "react-native-gesture-handler";
+import Swipeable from 'react-native-gesture-handler/Swipeable';
 
 const Location = () => {
 
@@ -19,6 +19,7 @@ const Location = () => {
   const [selectedCard, setSelectedCard] = useState<number | null>(1);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Record<number, any[]>>({});
+  const swipeableRefs = useRef<Record<number, Swipeable | null>>({});
   
   const fetchReceipts = async () => {
     try {
@@ -31,6 +32,10 @@ const Location = () => {
       setRefreshing(false);
     }
   };
+  
+  useEffect(() => {
+    fetchReceipts();
+  }, []);
 
   const handleSelectCard = async (receiptId: number) => {
     // Toggle card selection
@@ -47,9 +52,47 @@ const Location = () => {
     }
   };
 
-  useEffect(() => {
-    fetchReceipts();
-  }, []);
+  const renderRightActions = (receiptId: number) => (
+    <RectButton
+      style={{
+        backgroundColor: '#EF4444', // red
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        paddingHorizontal: 20,
+        borderRadius: 18,
+        marginVertical: 4,
+      }}
+      onPress={() => handleDelete(receiptId)}
+    >
+      <AppText className="text-white font-bold">Delete</AppText>
+    </RectButton>
+  );
+
+  const handleDelete = async (receiptId: number) => {
+  try {
+    const { success } = await deleteReceiptById(receiptId);
+
+    if (success) {
+      // Close swipeable
+      swipeableRefs.current[receiptId]?.close?.();
+
+      // Remove from UI
+      setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
+      setSelectedItems((prev) => {
+        const updated = { ...prev };
+        delete updated[receiptId];
+        return updated;
+      });
+
+      if (selectedCard === receiptId) {
+        setSelectedCard(null);
+      }
+    }
+  } catch (error) {
+    console.error("❌ Failed to delete receipt:", error);
+  }
+};
+
 
 
   return (
@@ -69,39 +112,32 @@ const Location = () => {
         {receipts.map((receipt, index) => {
           try {
             return (
-              <Animated.View
-                key={receipt.id}
-                entering={FadeInUp.delay(index * 100).springify().damping(12)}
+              <Swipeable
+                key={receipt.id} // ✅ Move key here
+                ref={(ref) => {
+                  if (ref) swipeableRefs.current[receipt.id] = ref;
+                }}
+                renderRightActions={() => renderRightActions(receipt.id)}
               >
-                <ReceiptCard
-                  receipt_id={receipt.id}
-                  merchant_name={receipt.merchant_name}
-                  transaction_date={receipt.transaction_date}
-                  transaction_time={receipt.transaction_time}
-                  item_count={receipt.item_count}
-                  total={receipt.total}
-                  isSelected={selectedCard === receipt.id}
-                  isVerified={receipt.isVerified}
-                  onSelect={handleSelectCard}
-                />
-
-                {selectedCard === receipt.id &&
-                  Array.isArray(selectedItems[receipt.id]) && (
-                    <Animated.View
-                      entering={FadeInUp.delay(index * 100).springify().damping(12)}
-                      exiting={FadeOutDown.delay(index * 50).springify().damping(12)}
-                    >
-                      <ReceiptItemCard
-                        isSelected={selectedCard === receipt.id}
-                        items={selectedItems[receipt.id].map((item: any) => ({
-                          item_name: item.item_name,
-                          quantity: item.quantity,
-                          price: item.price,
-                        }))}
-                      />
-                    </Animated.View>
-                  )}
-              </Animated.View>
+                <Animated.View
+                  key={receipt.id}
+                  entering={FadeInUp.delay(index * 100).springify().damping(12)}
+                >
+                  <ReceiptCard
+                    receipt_id={receipt.id}
+                    merchant_name={receipt.merchant_name}
+                    transaction_date={receipt.transaction_date}
+                    transaction_time={receipt.transaction_time}
+                    item_count={receipt.item_count}
+                    total={receipt.total}
+                    isSelected={selectedCard === receipt.id}
+                    isVerified={receipt.isVerified}
+                    onSelect={handleSelectCard}
+                    items={selectedItems[receipt.id] || []}
+                    isExpanded={selectedCard === receipt.id}
+                  />
+                </Animated.View>
+              </Swipeable>
             );
           } catch (error) {
             console.error(`🚨 Render error for receipt ID ${receipt.id}:`, error);
