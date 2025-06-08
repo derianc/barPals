@@ -6,7 +6,6 @@ import Animated, { FadeInUp, FadeOutDown, } from "react-native-reanimated";
 import CustomHeader from "@/components/shared/custom-header";
 import { deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
 import ReceiptCard from "@/components/screens/userFeed/receipt-card/receiptCard";
-import ReceiptItemCard from "@/components/screens/userFeed/receipt-card/receiptItemCard";
 import { getReceiptItems } from "@/services/sbReceiptItemsService";
 import { Text as AppText } from "@/components/ui/text";
 import 'react-native-gesture-handler';

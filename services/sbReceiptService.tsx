@@ -1,8 +1,8 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 
-export async function insertReceiptDetails(receiptData: TransactionData): Promise<void> {
-  // 0. Get current authenticated user
+export async function isReceiptDuplicate(receiptData: TransactionData): Promise<boolean> {
+// 0. Get current authenticated user
   const {
     data: { user },
     error: userError,
@@ -24,16 +24,30 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
     .limit(1);
 
   if (findError) {
-    console.error("🔍 Error checking for duplicates:", findError);
-    throw new Error("Error checking for duplicate receipt");
+    console.error("❌ Error checking for duplicate receipt:", findError);
+    return false; // Assume no duplicate if error occurs
   }
 
   if (existing && existing.length > 0) {
-    console.warn("⚠️ Duplicate receipt detected. Skipping insertion.");
-    throw new Error("Duplicate Receipt");
+    console.log("🔍 Found existing receipt:", existing);
+    return true; // Duplicate found
+  }
+  return false
+};
+
+export async function insertReceiptDetails(receiptData: TransactionData): Promise<boolean> {
+  // 0. Get current authenticated user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("🔐 Failed to get authenticated user:", userError);
+    throw new Error("User not authenticated");
   }
 
-  // 2. Insert into user_receipts
+  // 1. Insert into user_receipts
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
     .insert({
@@ -50,7 +64,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
 
   if (receiptError || !receiptInsert) {
     console.error("❌ Failed to insert receipt:", receiptError);
-    throw new Error("Failed to insert receipt");
+    return false;
   }
 
   // 3. Insert line items
@@ -80,10 +94,11 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
       console.log("♻️ Rolled back receipt insert due to item insert failure");
     }
 
-    throw new Error("Failed to insert receipt items");
+    return false;
   }
 
   console.log("✅ Receipt and items successfully inserted");
+  return true;
 }
 
 export async function getAllReceiptsForUser() {

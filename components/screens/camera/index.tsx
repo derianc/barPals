@@ -1,6 +1,4 @@
-// CameraComponent.tsx
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   TouchableOpacity,
@@ -20,26 +18,25 @@ import {
 } from "@azure/ai-form-recognizer";
 import { TransactionData, TransactionItem } from "@/data/models/transactionModel";
 import { uploadReceipt } from "@/services/sbFileService";
-import { insertReceiptDetails } from "@/services/sbReceiptService";
+import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbReceiptService";
+import { HStack } from "@/components/ui/hstack";
+import { CheckCircle, XCircle } from "lucide-react-native";
+import RBSheet from "react-native-raw-bottom-sheet"
+import SuccessSheet from "./BottomSheet";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
 };
-
-// Stub: replace with your real upload‐to‐storage implementation
-async function uploadImageAsync(localUri: string): Promise<string> {
-  // Upload `localUri` (file://…) to Firebase, Azure Blob, etc.
-  // Return a fully public HTTPS URL for the image.
-  return "https://firebasestorage.googleapis.com/v0/b/bar-o-meter-1bacd.firebasestorage.app/o/images%2F020483d0-1327-4e70-8826-e7c800eaa723.jpg?alt=media&token=3f96d9d3-1ed6-425a-96c4-4c7805325413";
-}
 
 export default function CameraComponent({ onCapture }: CameraViewProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [cameraRef, setCameraRef] = useState<any | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [transactionData, setTransactionData] = useState<TransactionData | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const bottomSheetRef = useRef<any>(null);
+  const [bottomSheetHeader, setBottomHeader] = useState("Failed");
+  const [bottomSheetText, setBottomText] = useState("Receipt Upload Failed");
+  const [bottomSheetSuccess, setBottomSuccess] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -52,8 +49,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     if (!cameraRef) return;
 
     try {
-      setErrorMessage(null);
-
       // 1) Take picture (no base64; we'll upload the file itself)
       const photo = await cameraRef.takePictureAsync({
         base64: false,
@@ -75,16 +70,43 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = extractReceiptDetails(analysisResult, publicUrl);
 
-      // 5) Save to Supabase
-      await insertReceiptDetails(txData);
+      // 4.5) Duplicate check
+      const isDuplicate = await isReceiptDuplicate(txData);
+      if (isDuplicate) {
+        setBottomHeader("Error!")
+        setBottomText("Duplicate Receipt Detected!")
+        setBottomSuccess(false)
+        bottomSheetRef.current?.open();
+        return
+      }
 
-      // 5) Save to state for rendering
-      setTransactionData(txData);
+      // 5) Save to Supabase
+      const isInsertSuccessful = await insertReceiptDetails(txData);
+      if (isInsertSuccessful) {
+        setBottomHeader("Success!")
+        setBottomText(`Receipt for ${txData.merchantName} uploaded successfully!`)
+        setBottomSuccess(true)
+      } else {
+        setBottomHeader("Error!")
+        setBottomText("Unable To Save Receipt Details")
+        setBottomSuccess(false)
+      }
+
+      // 6) open bottom sheet with results
+      bottomSheetRef.current?.open();
+
     } catch (err: any) {
       console.error("❌ handleCapture error:", err);
-      setErrorMessage(err.message || "Failed to analyze receipt.");
+      bottomSheetRef.current?.open();
     } finally {
       setLoading(false);
+
+      setTimeout(() => {
+        setPhotoUri(null);
+
+        // hide bottom sheet
+        bottomSheetRef.current?.close();
+      }, 3000);
     }
   };
 
@@ -139,41 +161,47 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
   return (
     <View style={styles.container}>
-      {!photoUri ? (
-        <CameraView style={styles.camera} ref={(ref: any) => setCameraRef(ref)}>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
-              <Ionicons name="camera" size={36} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </CameraView>
-      ) : (
-        <View style={styles.previewContainer}>
+      <CameraView style={styles.camera} ref={(ref: any) => setCameraRef(ref)}>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+            <Ionicons name="camera" size={36} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </CameraView>
+
+      <RBSheet
+        ref={bottomSheetRef}
+        height={250}
+        openDuration={300}
+        customStyles={{
+          container: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: 16,
+          },
+        }}
+      >
+        <SuccessSheet
+          headerText={bottomSheetHeader}
+          bodyText={bottomSheetText}
+          messageSuccess={bottomSheetSuccess} />
+
+      </RBSheet>
+
+      {/* Show preview image while loading */}
+      {loading && photoUri && (
+        <View style={styles.previewOverlay}>
           <Image source={{ uri: photoUri }} style={styles.previewImage} />
+          <View style={styles.spinnerOverlay}>
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        </View>
+      )}
 
-          {loading && (
-            <View style={styles.spinnerOverlay}>
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
-
-          {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-
-          {transactionData && (
-            <View style={styles.resultContainer}>
-              <Text style={styles.receiptLine}>Merchant: {transactionData.merchantName}</Text>
-              <Text style={styles.receiptLine}>Address: {transactionData.merchantAddress}</Text>
-              <Text style={styles.receiptLine}>Date: {transactionData.transactionDate}</Text>
-              <Text style={styles.receiptLine}>Time: {transactionData.transactionTime}</Text>
-              <Text style={styles.receiptLine}>Total: ${transactionData.total?.toFixed(2)}</Text>
-              <Text style={styles.receiptLine}>Line Items:</Text>
-              {transactionData.Items.map((it, idx) => (
-                <Text key={idx} style={styles.receiptLine}>
-                  • {it.item_name} | Qty: {it.quantity} | ${it.price}
-                </Text>
-              ))}
-            </View>
-          )}
+      {/* Loading Spinner Overlay */}
+      {loading && (
+        <View style={styles.spinnerOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
     </View>
@@ -181,30 +209,35 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  camera: { flex: 1 },
+  container: {
+    flex: 1
+  },
+  camera: {
+    flex: 1
+  },
   buttonContainer: {
     flex: 1,
     justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 20,
   },
-  previewContainer: { flex: 1, alignItems: "center", padding: 16 },
-  previewImage: { width: "90%", height: "40%", borderRadius: 10 },
-  spinnerOverlay: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    justifyContent: "center",
+  previewContainer: {
+    flex: 1,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 10,
+    padding: 16
   },
-  resultContainer: { marginTop: 16, width: "100%" },
-  receiptLine: { marginVertical: 2, fontSize: 16 },
-  errorText: { color: "red", fontSize: 16 },
+  resultContainer: {
+    marginTop: 16,
+    width: "100%"
+  },
+  receiptLine: {
+    fontSize: 14,
+    color: "#444",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 16
+  },
   captureButton: {
     backgroundColor: "#fff",
     borderWidth: 4,
@@ -214,5 +247,59 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
+  },
+  bottomSheet: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+  details: {
+    gap: 4,
+  },
+  previewOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+
+  previewImage: {
+    width: "90%",
+    height: "90%",
+    resizeMode: "cover",
+    opacity: 0.9,
+  },
+
+  spinnerOverlay: {
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
   },
 });
