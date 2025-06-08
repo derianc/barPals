@@ -12,12 +12,13 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Icon } from "@/components/ui/icon";
-import { Clock, Calendar, CheckCircle, XCircle } from "lucide-react-native";
+import { Clock, Calendar, CheckCircle, XCircle, MapPin } from "lucide-react-native";
 import { TransactionItem } from "@/data/models/transactionModel";
 
 interface IReceiptCard {
   receipt_id: number;
   merchant_name: string;
+  merchant_address: string;
   transaction_date: string;
   transaction_time: string;
   item_count: number;
@@ -32,6 +33,7 @@ interface IReceiptCard {
 const ReceiptCard = ({
   receipt_id,
   merchant_name,
+  merchant_address,
   transaction_date,
   transaction_time,
   item_count,
@@ -66,6 +68,15 @@ const ReceiptCard = ({
       <Text size="lg" className="font-semibold text-typography-700" style={{fontFamily: "dm-sans-bold",}}>
         {merchant_name}
       </Text>
+      <HStack className="items-center space-x-1 mt-[-8px]">
+        <Icon as={MapPin} size="xs" className="text-typography-500" />
+        <Text size="xs" className="text-typography-500" style={{ fontFamily: "dm-sans-light" }}>
+          {merchant_address
+            .replace(/\s*\n\s*/g, ", ")
+            .replace(/\s{2,}/g, " ")
+            .trim()}
+        </Text>
+      </HStack>
 
       {/* 🔹 Item count, date/time, total in LocationCard-style row */}
       <HStack>

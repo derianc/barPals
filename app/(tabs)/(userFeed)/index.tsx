@@ -12,14 +12,16 @@ import 'react-native-gesture-handler';
 import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 
-const Location = () => {
+const userFeed = () => {
 
   const [receipts, setReceipts] = useState<any[]>([]);
   const [selectedCard, setSelectedCard] = useState<number | null>(1);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Record<number, any[]>>({});
   const swipeableRefs = useRef<Record<number, Swipeable | null>>({});
-  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
+
   const fetchReceipts = async () => {
     try {
       setRefreshing(true);
@@ -35,6 +37,18 @@ const Location = () => {
   useEffect(() => {
     fetchReceipts();
   }, []);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredReceipts(receipts);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const results = receipts.filter((r) =>
+        r.merchant_name.toLowerCase().includes(query)
+      );
+      setFilteredReceipts(results);
+    }
+  }, [searchQuery, receipts]);
 
   const handleSelectCard = async (receiptId: number) => {
     // Toggle card selection
@@ -92,14 +106,39 @@ const Location = () => {
   }
 };
 
+const getMostVisitedVenue = (): string => {
+  const countMap: Record<string, number> = {};
+
+  receipts.forEach((receipt) => {
+    const name = receipt.merchant_name || "Unknown";
+    countMap[name] = (countMap[name] || 0) + 1;
+  });
+
+  let maxVisits = 0;
+  let mostVisited = "N/A";
+
+  for (const [merchant, count] of Object.entries(countMap)) {
+    if (count > maxVisits) {
+      maxVisits = count;
+      mostVisited = merchant;
+    }
+  }
+
+  return mostVisited;
+};
+
 
 
   return (
     <VStack space="md" className="flex-1 bg-background-0">
       <CustomHeader
         variant="search"
-        title="Location"
+        title="Receipts"
         label="Search Receipts"
+        receiptCount={receipts.length}
+        mostVisited={getMostVisitedVenue()}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
       <ScrollView
         contentContainerClassName="gap-3 px-5"
@@ -108,51 +147,57 @@ const Location = () => {
           <RefreshControl refreshing={refreshing} onRefresh={fetchReceipts} />
         }
       >
-        {receipts.map((receipt, index) => {
-          try {
-            return (
-              <Swipeable
-                key={receipt.id} // ✅ Move key here
-                ref={(ref) => {
-                  if (ref) swipeableRefs.current[receipt.id] = ref;
-                }}
-                renderRightActions={() => renderRightActions(receipt.id)}
-              >
-                <Animated.View
+        {filteredReceipts.length === 0 ? (
+          <AppText className="text-center text-typography-300 mt-6">
+            No receipts match your search.
+          </AppText>
+        ) : (
+          filteredReceipts.map((receipt, index) => {
+            try {
+              return (
+                <Swipeable
                   key={receipt.id}
-                  entering={FadeInUp.delay(index * 100).springify().damping(12)}
+                  ref={(ref) => {
+                    if (ref) swipeableRefs.current[receipt.id] = ref;
+                  }}
+                  renderRightActions={() => renderRightActions(receipt.id)}
                 >
-                  <ReceiptCard
-                    receipt_id={receipt.id}
-                    merchant_name={receipt.merchant_name}
-                    transaction_date={receipt.transaction_date}
-                    transaction_time={receipt.transaction_time}
-                    item_count={receipt.item_count}
-                    total={receipt.total}
-                    isSelected={selectedCard === receipt.id}
-                    isVerified={receipt.isVerified}
-                    onSelect={handleSelectCard}
-                    items={selectedItems[receipt.id] || []}
-                    isExpanded={selectedCard === receipt.id}
-                  />
-                </Animated.View>
-              </Swipeable>
-            );
-          } catch (error) {
-            console.error(`🚨 Render error for receipt ID ${receipt.id}:`, error);
-            return (
-              <VStack key={`error-${receipt.id}`} className="p-4 bg-red-100 rounded-xl">
-                <AppText className="text-red-700 font-semibold">
-                  Failed to render receipt ID {receipt.id}
-                </AppText>
-              </VStack>
-            );
-          }
-        })}
+                  <Animated.View
+                    entering={FadeInUp.delay(index * 100).springify().damping(12)}
+                  >
+                    <ReceiptCard
+                      receipt_id={receipt.id}
+                      merchant_name={receipt.merchant_name}
+                      merchant_address={receipt.merchant_address ?? "Unknown Address"}
+                      transaction_date={receipt.transaction_date}
+                      transaction_time={receipt.transaction_time}
+                      item_count={receipt.item_count}
+                      total={receipt.total}
+                      isSelected={selectedCard === receipt.id}
+                      isVerified={receipt.isVerified}
+                      onSelect={handleSelectCard}
+                      items={selectedItems[receipt.id] || []}
+                      isExpanded={selectedCard === receipt.id}
+                    />
+                  </Animated.View>
+                </Swipeable>
+              );
+            } catch (error) {
+              console.error(`🚨 Render error for receipt ID ${receipt.id}:`, error);
+              return (
+                <VStack key={`error-${receipt.id}`} className="p-4 bg-red-100 rounded-xl">
+                  <AppText className="text-red-700 font-semibold">
+                    Failed to render receipt ID {receipt.id}
+                  </AppText>
+                </VStack>
+              );
+            }
+          })
+        )}
 
       </ScrollView>
     </VStack>
   );
 };
 
-export default Location;
+export default userFeed;
