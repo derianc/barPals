@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { RefreshControl } from "react-native";
+import { RefreshControl, View } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import Animated, { FadeInUp, FadeOutDown, } from "react-native-reanimated";
 import UserFeedHeader from "@/components/shared/custom-header/userFeedHeader";
-import { deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
+import { archiveReceiptById, deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
 import ReceiptCard from "@/components/screens/userFeed/receipt-card/receiptCard";
 import { getReceiptItems } from "@/services/sbReceiptItemsService";
 import { Text as AppText } from "@/components/ui/text";
@@ -66,24 +66,72 @@ const userFeed = () => {
   };
 
   const renderRightActions = (receiptId: number) => (
-    <RectButton
+    <View
       style={{
-        backgroundColor: '#EF4444', // red
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        paddingHorizontal: 20,
-        borderRadius: 18,
-        marginVertical: 4,
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "flex-end",
+        paddingRight: 8,
       }}
-      onPress={() => handleDelete(receiptId)}
     >
-      <AppText className="text-white font-bold">Delete</AppText>
-    </RectButton>
+      <View style={{ gap: 6 }}>
+        <RectButton
+          style={{
+            backgroundColor: "#3B82F6", // default blue
+            paddingVertical: 6,
+            paddingHorizontal: 14,
+            borderRadius: 8,
+          }}
+          onPress={() => handleArchive(receiptId)}
+        >
+          <AppText className="text-white text-xs font-semibold">Archive</AppText>
+        </RectButton>
+
+        <RectButton
+          style={{
+            backgroundColor: "#EF4444", // red
+            paddingVertical: 6,
+            paddingHorizontal: 14,
+            borderRadius: 8,
+          }}
+          onPress={() => handleDelete(receiptId)}
+        >
+          <AppText className="text-white text-xs font-semibold">Delete</AppText>
+        </RectButton>
+      </View>
+    </View>
   );
+
+
 
   const handleDelete = async (receiptId: number) => {
     try {
       const { success } = await deleteReceiptById(receiptId);
+
+      if (success) {
+        // Close swipeable
+        swipeableRefs.current[receiptId]?.close?.();
+
+        // Remove from UI
+        setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
+        setSelectedItems((prev) => {
+          const updated = { ...prev };
+          delete updated[receiptId];
+          return updated;
+        });
+
+        if (selectedCard === receiptId) {
+          setSelectedCard(null);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to delete receipt:", error);
+    }
+  };
+
+  const handleArchive = async (receiptId: number) => {
+    try {
+      const { success } = await archiveReceiptById(receiptId);
 
       if (success) {
         // Close swipeable

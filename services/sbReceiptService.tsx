@@ -150,6 +150,20 @@ export async function deleteReceiptById(receiptId: number): Promise<{ success: b
   return { success: true };
 }
 
+export async function archiveReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {
+  const { error } = await supabase
+    .from("user_receipts")
+    .update({ isArchived: true })
+    .eq("id", receiptId);
+
+  if (error) {
+    console.error("❌ Supabase archive error:", error.message);
+    return { success: false, error };
+  }
+
+  return { success: true };
+}
+
 export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
   const {
     data: { user },
