@@ -22,13 +22,14 @@ import {
 import { DollarSign, StoreIcon, PackageIcon, Box, CloudRain } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
+import ShimmerCard from "@/components/screens/userHome/shimmer-card/shimmer-card";
 
 /**
  * Timeframe union type includes "day", "7days", "30days", and "all".
  */
 type Timeframe = "day" | "7days" | "30days" | "all";
 
-const Hourly = () => {
+const UserHome = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
   const AnimatedVStack = Animated.createAnimatedComponent(VStack);
 
@@ -71,6 +72,17 @@ const Hourly = () => {
   }, [timeframe]);
 
   async function fetchCurrentAndPreviousMetrics() {
+    // Reset to trigger shimmer
+    setCurrentTotalSpend(null);
+    setCurrentAvgSpend(null);
+    setCurrentVenuesVisited(null);
+    setCurrentAvgItems(null);
+    setPreviousTotalSpend(null);
+    setPreviousAvgSpend(null);
+    setPreviousVenuesVisited(null);
+    setPreviousAvgItems(null);
+
+
     const now = new Date();
     let startCurrent: Date | null;
     let startPrevious: Date | null;
@@ -352,6 +364,7 @@ const Hourly = () => {
   useFocusEffect(
     useCallback(() => {
       // This runs every time the tab/screen is focused
+      
       fetchCurrentAndPreviousMetrics();
       loadSpendBuckets();
       getUniqueVisitsByWeekday();
@@ -381,32 +394,40 @@ const Hourly = () => {
         >
           <HStack space="md">
             {/* Total Spend Card */}
-            <HourlyCard
-              icon={DollarSign}
-              text="Total Spend"
-              currentUpdate={
-                currentTotalSpend !== null
-                  ? `$${currentTotalSpend.toFixed(2)}`
-                  : "--"
-              }
-              lastUpdate={formatTimeframeLabel(timeframe)}
-              arrowDownIcon={!totalUp}
-              arrowUpIcon={totalUp}
-            />
+            {currentTotalSpend === null ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={DollarSign}
+                text="Total Spend"
+                currentUpdate={
+                  currentTotalSpend !== null
+                    ? `$${currentTotalSpend.toFixed(2)}`
+                    : "--"
+                }
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowDownIcon={!totalUp}
+                arrowUpIcon={totalUp}
+              />
+            )}
 
             {/* Avg Spend Card */}
-            <HourlyCard
-              icon={DollarSign}
-              text="Avg Spend"
-              currentUpdate={
-                currentAvgSpend !== null
-                  ? `$${currentAvgSpend.toFixed(2)}`
-                  : "--"
-              }
-              lastUpdate={formatTimeframeLabel(timeframe)}
-              arrowDownIcon={!avgSpendUp}
-              arrowUpIcon={avgSpendUp}
-            />
+            {currentAvgSpend === null ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={DollarSign}
+                text="Avg Spend"
+                currentUpdate={
+                  currentAvgSpend !== null
+                    ? `$${currentAvgSpend.toFixed(2)}`
+                    : "--"
+                }
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowDownIcon={!avgSpendUp}
+                arrowUpIcon={avgSpendUp}
+              />
+            )}
           </HStack>
         </Animated.View>
 
@@ -419,32 +440,40 @@ const Hourly = () => {
         >
           <HStack space="md">
             {/* Venues Visited Card */}
-            <HourlyCard
-              icon={StoreIcon}
-              text="Venues Visited"
-              currentUpdate={
-                currentVenuesVisited !== null
-                  ? `${currentVenuesVisited}`
-                  : "--"
-              }
-              lastUpdate={formatTimeframeLabel(timeframe)}
-              arrowDownIcon={!venuesUp}
-              arrowUpIcon={venuesUp}
-            />
+            {currentVenuesVisited === null ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={StoreIcon}
+                text="Venues Visited"
+                currentUpdate={
+                  currentVenuesVisited !== null
+                    ? `${currentVenuesVisited}`
+                    : "--"
+                }
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowDownIcon={!venuesUp}
+                arrowUpIcon={venuesUp}
+              />
+            )}
 
             {/* Avg Items/Visit Card */}
-            <HourlyCard
-              icon={PackageIcon}
-              text="Avg Items/Visit"
-              currentUpdate={
-                currentAvgItems !== null
-                  ? `${currentAvgItems.toFixed(1)}`
-                  : "--"
-              }
-              lastUpdate={formatTimeframeLabel(timeframe)}
-              arrowDownIcon={!avgItemsUp}
-              arrowUpIcon={avgItemsUp}
-            />
+            {currentAvgItems === null ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={PackageIcon}
+                text="Avg Items/Visit"
+                currentUpdate={
+                  currentAvgItems !== null
+                    ? `${currentAvgItems.toFixed(1)}`
+                    : "--"
+                }
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowDownIcon={!avgItemsUp}
+                arrowUpIcon={avgItemsUp}
+              />
+            )}
           </HStack>
         </Animated.View>
       </AnimatedVStack>
@@ -479,7 +508,7 @@ const Hourly = () => {
   );
 };
 
-export default Hourly;
+export default UserHome;
 
 function formatTimeframeLabel(timeframe: Timeframe): string {
   switch (timeframe) {
