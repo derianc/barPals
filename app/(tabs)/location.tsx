@@ -4,7 +4,7 @@ import LocationCard from "@/components/screens/location/location-card";
 import { ScrollView } from "@/components/ui/scroll-view";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { CitiesWeatherData } from "@/data/screens/location";
-import CustomHeader from "@/components/shared/custom-header";
+import CustomHeader from "@/components/shared/custom-header/userFeedHeader";
 
 const Location = () => {
   const [selectedCard, setSelectedCard] = useState<number>(1);

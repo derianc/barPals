@@ -3,7 +3,7 @@ import { RefreshControl } from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import Animated, { FadeInUp, FadeOutDown, } from "react-native-reanimated";
-import CustomHeader from "@/components/shared/custom-header";
+import UserFeedHeader from "@/components/shared/custom-header/userFeedHeader";
 import { deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
 import ReceiptCard from "@/components/screens/userFeed/receipt-card/receiptCard";
 import { getReceiptItems } from "@/services/sbReceiptItemsService";
@@ -33,7 +33,7 @@ const userFeed = () => {
       setRefreshing(false);
     }
   };
-  
+
   useEffect(() => {
     fetchReceipts();
   }, []);
@@ -82,57 +82,54 @@ const userFeed = () => {
   );
 
   const handleDelete = async (receiptId: number) => {
-  try {
-    const { success } = await deleteReceiptById(receiptId);
+    try {
+      const { success } = await deleteReceiptById(receiptId);
 
-    if (success) {
-      // Close swipeable
-      swipeableRefs.current[receiptId]?.close?.();
+      if (success) {
+        // Close swipeable
+        swipeableRefs.current[receiptId]?.close?.();
 
-      // Remove from UI
-      setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
-      setSelectedItems((prev) => {
-        const updated = { ...prev };
-        delete updated[receiptId];
-        return updated;
-      });
+        // Remove from UI
+        setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
+        setSelectedItems((prev) => {
+          const updated = { ...prev };
+          delete updated[receiptId];
+          return updated;
+        });
 
-      if (selectedCard === receiptId) {
-        setSelectedCard(null);
+        if (selectedCard === receiptId) {
+          setSelectedCard(null);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to delete receipt:", error);
+    }
+  };
+
+  const getMostVisitedVenue = (): string => {
+    const countMap: Record<string, number> = {};
+
+    receipts.forEach((receipt) => {
+      const name = receipt.merchant_name || "Unknown";
+      countMap[name] = (countMap[name] || 0) + 1;
+    });
+
+    let maxVisits = 0;
+    let mostVisited = "N/A";
+
+    for (const [merchant, count] of Object.entries(countMap)) {
+      if (count > maxVisits) {
+        maxVisits = count;
+        mostVisited = merchant;
       }
     }
-  } catch (error) {
-    console.error("❌ Failed to delete receipt:", error);
-  }
-};
 
-const getMostVisitedVenue = (): string => {
-  const countMap: Record<string, number> = {};
-
-  receipts.forEach((receipt) => {
-    const name = receipt.merchant_name || "Unknown";
-    countMap[name] = (countMap[name] || 0) + 1;
-  });
-
-  let maxVisits = 0;
-  let mostVisited = "N/A";
-
-  for (const [merchant, count] of Object.entries(countMap)) {
-    if (count > maxVisits) {
-      maxVisits = count;
-      mostVisited = merchant;
-    }
-  }
-
-  return mostVisited;
-};
-
-
+    return mostVisited;
+  };
 
   return (
     <VStack space="md" className="flex-1 bg-background-0">
-      <CustomHeader
-        variant="search"
+      <UserFeedHeader
         title="Receipts"
         label="Search Receipts"
         receiptCount={receipts.length}

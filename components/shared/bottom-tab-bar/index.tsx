@@ -2,29 +2,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import {
-  LocationIcon,
-  MapsIcon,
-  SettingsIcon,
-  ActiveLocationIcon,
-  ActiveMapsIcon,
-  ActiveSettingsIcon,
-  HomeIcon,
-  ActiveHomeIcon,
-  FeedIcon,
-  ActiveFeedIcon,
-} from "@/components/shared/icon";
 import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
-import { Platform } from "react-native";
+import { Platform, Image } from "react-native";
 import { Icon } from "@/components/ui/icon";
-import { CameraIcon } from "lucide-react-native";
+import { Home, List, CameraIcon, TagIcon, User } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { supabase } from "@/supabase";
+import { getProfile } from "@/services/sbUserService";
 
 interface TabItem {
   name: string;
   label: string;
   path: string;
-  inActiveIcon: React.ElementType;
   icon: React.ElementType;
 }
 
@@ -33,43 +23,58 @@ const tabItems: TabItem[] = [
     name: "(userHome)",
     label: "Home",
     path: "(userHome)",
-    inActiveIcon: HomeIcon,
-    icon: ActiveHomeIcon,
+    icon: Home,
   },
-
   {
     name: "(userFeed)",
     label: "Feed",
     path: "(userFeed)/index",
-    inActiveIcon: FeedIcon,
-    icon: ActiveFeedIcon,
+    icon: List,
   },
   {
     name: "camera",
     label: "Camera",
     path: "camera",
-    inActiveIcon: CameraIcon,
     icon: CameraIcon,
   },
   {
-    name: "maps",
-    label: "Maps",
-    path: "maps",
-    inActiveIcon: MapsIcon,
-    icon: ActiveMapsIcon,
+    name: "(userOffers)",
+    label: "Offers",
+    path: "(userOffers)/index",
+    icon: TagIcon,
   },
   {
-    name: "(settings)",
+    name: "(userProfile)",
     label: "Settings",
-    path: "(settings)/index",
-    inActiveIcon: SettingsIcon,
-    icon: ActiveSettingsIcon,
+    path: "(userProfile)/index",
+    icon: User,
   },
-  
 ];
 
 function BottomTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      const {
+        data: session,
+        error: sessionError,
+      } = await supabase.auth.getUser();
+      if (sessionError || !session.user) return;
+
+      const { data, error } = await getProfile(session.user.id);
+
+      if (error) {
+        console.error("Failed to load avatar:", error);
+        return;
+      }
+
+      setAvatarUrl(data?.avatar_url || null);
+    };
+
+    fetchAvatar();
+  }, []);
 
   return (
     <Box className="bg-background-0">
@@ -84,6 +89,8 @@ function BottomTabBar(props: BottomTabBarProps) {
         {tabItems.map((item) => {
           const isActive =
             props.state.routeNames[props.state.index] === item.path;
+
+          const isProfileTab = item.name === "(userProfile)";
           return (
             <Pressable
               key={item.name}
@@ -92,17 +99,30 @@ function BottomTabBar(props: BottomTabBarProps) {
                 props.navigation.navigate(item.path);
               }}
             >
-              <Icon
-                as={isActive ? item.icon : item.inActiveIcon}
-                size="xl"
-                className={`${
-                  isActive
-                    ? item.icon === ActiveMapsIcon
-                      ? "fill-primary-800 text-background-0"
-                      : "fill-primary-800 text-primary-800"
-                    : "text-background-500"
-                }`}
-              />
+              {isProfileTab && avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    borderWidth: 2,
+                    borderColor: isActive ? "#6A11CB" : "#9CA3AF",
+                  }}
+                />
+              ) : (
+                <Icon
+                  as={item.icon}
+                  size="xl"
+                  className={`${
+                    isActive
+                      ? item.icon === TagIcon
+                        ? "fill-primary-800 text-background-0"
+                        : "fill-primary-800 text-primary-800"
+                      : "text-background-500"
+                  }`}
+                />
+              )}
               <Text
                 size="xs"
                 className={`mt-1 font-medium ${
