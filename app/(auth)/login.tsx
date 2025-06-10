@@ -34,7 +34,7 @@ export default function LoginPage() {
       Alert.alert('Sign-in Error', error.message)
     } else {
       // Optional: inspect `data.user` or `data.session` if you need to debug
-      console.log('Logged in user:', JSON.stringify(data.user, null, 2))
+      // console.log('Logged in user:', JSON.stringify(data.user, null, 2))
 
       // On successful login, redirect into the Tabs layout
       // (i.e. any route under (tabs)/_layout.tsx)

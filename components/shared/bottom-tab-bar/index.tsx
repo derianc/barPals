@@ -6,7 +6,14 @@ import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
 import { Platform, Image } from "react-native";
 import { Icon } from "@/components/ui/icon";
-import { Home, List, CameraIcon, TagIcon, User } from "lucide-react-native";
+import {
+  Home,
+  List,
+  CameraIcon,
+  Map as MapIcon,
+  TagIcon,
+  User,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { supabase } from "@/supabase";
 import { getProfile } from "@/services/sbUserService";
@@ -18,63 +25,45 @@ interface TabItem {
   icon: React.ElementType;
 }
 
-const tabItems: TabItem[] = [
-  {
-    name: "(userHome)",
-    label: "Home",
-    path: "(userHome)",
-    icon: Home,
-  },
-  {
-    name: "(userFeed)",
-    label: "Feed",
-    path: "(userFeed)/index",
-    icon: List,
-  },
-  {
-    name: "camera",
-    label: "Camera",
-    path: "camera",
-    icon: CameraIcon,
-  },
-  {
-    name: "(userOffers)",
-    label: "Offers",
-    path: "(userOffers)/index",
-    icon: TagIcon,
-  },
-  {
-    name: "(userProfile)",
-    label: "Settings",
-    path: "(userProfile)/index",
-    icon: User,
-  },
-];
-
 function BottomTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userType, setUserType] = useState<"user" | "owner">("user");
 
   useEffect(() => {
-    const fetchAvatar = async () => {
-      const {
-        data: session,
-        error: sessionError,
-      } = await supabase.auth.getUser();
+    const fetchUserTypeAndAvatar = async () => {
+      const { data: session, error: sessionError } = await supabase.auth.getUser();
       if (sessionError || !session.user) return;
 
       const { data, error } = await getProfile(session.user.id);
-
       if (error) {
-        console.error("Failed to load avatar:", error);
+        console.error("Failed to load profile:", error);
         return;
       }
 
       setAvatarUrl(data?.avatar_url || null);
+      setUserType(data?.role === "owner" ? "owner" : "user");
     };
 
-    fetchAvatar();
+    fetchUserTypeAndAvatar();
   }, []);
+
+  const tabItems: TabItem[] =
+    userType === "owner"
+      ? [
+          { name: "(ownerHome)", label: "Home", path: "(ownerHome)", icon: Home },
+          { name: "(ownerFeed)", label: "Feed", path: "(ownerFeed)/index", icon: List },
+          { name: "(ownerMap)", label: "Map", path: "(ownerMap)/index", icon: MapIcon },
+          { name: "(ownerOffers)", label: "Offers", path: "(ownerOffers)/index", icon: TagIcon },
+          { name: "(ownerProfile)", label: "Profile", path: "(ownerProfile)/index", icon: User },
+        ]
+      : [
+          { name: "(userHome)", label: "Home", path: "(userHome)", icon: Home },
+          { name: "(userFeed)", label: "Feed", path: "(userFeed)/index", icon: List },
+          { name: "camera", label: "Camera", path: "camera", icon: CameraIcon },
+          { name: "(userOffers)", label: "Offers", path: "(userOffers)/index", icon: TagIcon },
+          { name: "(userProfile)", label: "Settings", path: "(userProfile)/index", icon: User },
+        ];
 
   return (
     <Box className="bg-background-0">
@@ -87,17 +76,15 @@ function BottomTabBar(props: BottomTabBarProps) {
         space="md"
       >
         {tabItems.map((item) => {
-          const isActive =
-            props.state.routeNames[props.state.index] === item.path;
+          const isActive = props.state.routeNames[props.state.index] === item.path;
+          const isProfileTab =
+            item.name === "(userProfile)" || item.name === "(ownerProfile)";
 
-          const isProfileTab = item.name === "(userProfile)";
           return (
             <Pressable
               key={item.name}
               className="flex-1 items-center justify-center"
-              onPress={() => {
-                props.navigation.navigate(item.path);
-              }}
+              onPress={() => props.navigation.navigate(item.path)}
             >
               {isProfileTab && avatarUrl ? (
                 <Image

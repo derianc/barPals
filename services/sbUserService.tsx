@@ -46,29 +46,37 @@ export async function registerUser(email: string, password: string): Promise<Reg
  * Fetch a profile by its user ID.
  */
 export async function getProfile(userId: string) {
-    const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-    return { data, error };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  return { data, error };
 }
 
 export async function updateUserProfile(
-    userId: string,
-    updates: Partial<{
-        full_name: string;
-        username: string;
-        allow_notifications: boolean;
-        avatar_url: string | null;
-    }>
+  userId: string,
+  updates: Partial<{
+    full_name: string;
+    username: string;
+    allow_notifications: boolean;
+    avatar_url: string | null;
+  }>
 ) {
-    const { data, error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", userId)
-        .select("*")
-        .single();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", userId)
+    .select("*")
+    .single();
 
-    return { data, error };
+  return { data, error };
+}
+
+export async function logout(){
+  const {error} = await supabase.auth.signOut();
+  if (error) {
+    console.error("Logout failed:", error.message);
+    return { error };
+  }
 }

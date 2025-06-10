@@ -16,7 +16,7 @@ import { supabase } from "@/supabase";
 import { getProfile } from "@/services/sbUserService";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
 import { Camera } from "lucide-react-native";
-import ProfileCard from "@/components/screens/userProfile/profileCard";
+import ProfileCard from "@/components/screens/userProfile/profile-card/profileCard";
 import { Icon } from "@/components/ui/icon";
 import { Calendar, Bell } from "lucide-react-native";
 

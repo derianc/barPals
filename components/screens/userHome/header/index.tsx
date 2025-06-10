@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { HStack } from "@/components/ui/hstack";
 import { Icon, SearchIcon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
@@ -11,22 +11,73 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { getProfile } from "@/services/sbUserService";
+import { supabase } from "@/supabase";
+import { getConsecutiveReceiptDays } from "@/services/sbReceiptService";
 
-export function useUserMetrics() {
-  // Replace with live queries from Supabase
-  return {
-    totalSpendToday: 54.2,
-    topVenue: "The Tipsy Bar",
-    visitStreak: 10,
-    displayName: "Derian Conteh-Morgan",
-  };
+
+interface UserProfileData {
+  id: string;
+  email: string;
+  username: string | null;
+  full_name: string | null;
+  allow_notifications: boolean;
+  avatar_url?: string | null;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const Header = ({ height }: { height: number }) => {
+  const [user, setUser] = useState<UserProfileData | null>(null);
+  const [visitStreak, setVisitStreak] = useState(0);
+  const [displayName, setDisplayName] = useState("Welcome back!");
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const {
+        data: session,
+        error: sessionError,
+      } = await supabase.auth.getUser();
+
+      if (sessionError || !session.user) {
+        console.error("Auth error:", sessionError);
+        return;
+      }
+
+      const { data, error } = await getProfile(session.user.id);
+      if (error) {
+        console.error("Profile fetch error:", error);
+      } else {
+        setUser(data);
+        if (data.full_name) {
+          setDisplayName(data.full_name);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchConsecutiveVisits = async () => {
+      const result = await getConsecutiveReceiptDays();
+      setVisitStreak(result);
+    };
+
+    fetchConsecutiveVisits();
+  }, []);
+
   const { colorMode }: any = useContext(ThemeContext);
   const now = new Date();
 
-  const { totalSpendToday, topVenue, visitStreak, displayName } = useUserMetrics();
+  const getStreakEmoji = (streak: number) => {
+    if (streak >= 8) return "🔥";         // hot
+    if (streak >= 4) return "🌶️";        // warm
+    if (streak >= 1) return "🧊";         // cool
+    return "💤";                          // no streak
+  };
 
   // Update all interpolation ranges to match new height values
   const locationTextStyle = useAnimatedStyle(() => ({
@@ -134,7 +185,7 @@ const Header = ({ height }: { height: number }) => {
                   locationTextStyle,
                 ]}
               >
-                {displayName ?? "Welcome back!"}
+                {displayName}
               </Animated.Text>
               <Animated.Text
                 style={[
@@ -208,7 +259,7 @@ const Header = ({ height }: { height: number }) => {
                 },
               ]}
             >
-              {visitStreak > 5 ? "🔥" : "♨️"} {visitStreak} day streak
+              {getStreakEmoji(visitStreak)} {visitStreak} day streak
             </Animated.Text>
           </Animated.View>
         </Animated.View>

@@ -1,5 +1,7 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
+import { startOfDay, subDays, isSameDay } from "date-fns";
+
 
 export async function isReceiptDuplicate(receiptData: TransactionData): Promise<boolean> {
 // 0. Get current authenticated user
@@ -134,6 +136,50 @@ export async function getAllReceiptsForUser() {
   }));
 
   return receipts;
+}
+
+export async function getConsecutiveReceiptDays(): Promise<number> {
+  // 1. Get current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("🔐 Failed to get authenticated user:", userError);
+    return 0;
+  }
+
+  // 2. Fetch distinct transaction dates (deduped per day)
+  const { data, error } = await supabase
+    .from("user_receipts")
+    .select("transaction_date")
+    .eq("user_id", user.id)
+    .order("transaction_date", { ascending: false });
+
+  if (error || !data) {
+    console.error("❌ Failed to fetch receipts:", error);
+    return 0;
+  }
+
+  const uniqueDates = Array.from(
+    new Set(
+      data.map((r) => startOfDay(new Date(r.transaction_date)).toISOString())
+    )
+  ).map((d) => new Date(d));
+
+  // 3. Count consecutive days starting from today
+  let count = 0;
+  let currentDay = startOfDay(new Date());
+
+  while (
+    uniqueDates.some((date) => isSameDay(date, currentDay))
+  ) {
+    count++;
+    currentDay = subDays(currentDay, 1);
+  }
+
+  return count;
 }
 
 export async function deleteReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {

@@ -45,6 +45,25 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     })();
   }, []);
 
+  const isReceiptValid = (receipt: AnalyzeResult<AnalyzedDocument> | undefined): boolean => {
+    if (!receipt || !receipt.documents || receipt.documents.length === 0) {
+      return false;
+    }
+
+    const document = receipt.documents[0];
+    const fields = document.fields;
+
+    // Check for required fields
+    const requiredFields = ["MerchantName", "Total", "TransactionDate"];
+    for (const field of requiredFields) {
+      if (!fields[field] || !fields[field].content || fields[field].content.toUpperCase().trim() === "UNKNOWN") {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   const handleCapture = async () => {
     if (!cameraRef) return;
 
@@ -70,6 +89,15 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = extractReceiptDetails(analysisResult, publicUrl);
 
+      const isValid = isReceiptValid(analysisResult);
+      if (!isValid) {
+        setBottomHeader("Error!")
+        setBottomText("Invalid Receipt Format!")
+        setBottomSuccess(false)
+        bottomSheetRef.current?.open();
+        return;
+      }
+      
       // 4.5) Duplicate check
       const isDuplicate = await isReceiptDuplicate(txData);
       if (isDuplicate) {
