@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   lineShimmer: {
-    height: 10,
+    height: 18,
     borderRadius: 8,
     marginBottom: 8,
     width: "80%",

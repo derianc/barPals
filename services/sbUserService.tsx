@@ -53,3 +53,22 @@ export async function getProfile(userId: string) {
         .single();
     return { data, error };
 }
+
+export async function updateUserProfile(
+    userId: string,
+    updates: Partial<{
+        full_name: string;
+        username: string;
+        allow_notifications: boolean;
+        avatar_url: string | null;
+    }>
+) {
+    const { data, error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", userId)
+        .select("*")
+        .single();
+
+    return { data, error };
+}
