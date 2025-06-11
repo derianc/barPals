@@ -19,10 +19,9 @@ import {
 import { TransactionData, TransactionItem } from "@/data/models/transactionModel";
 import { uploadReceipt } from "@/services/sbFileService";
 import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbReceiptService";
-import { HStack } from "@/components/ui/hstack";
-import { CheckCircle, XCircle } from "lucide-react-native";
 import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
+import { format, parse } from "date-fns";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -45,24 +44,33 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     })();
   }, []);
 
-  const isReceiptValid = (receipt: AnalyzeResult<AnalyzedDocument> | undefined): boolean => {
-    if (!receipt || !receipt.documents || receipt.documents.length === 0) {
+  const isReceiptValid = (txData: TransactionData | undefined): boolean => {
+    if (!txData) {
+      console.warn("Invalid receipt: txData is undefined");
       return false;
     }
 
-    const document = receipt.documents[0];
-    const fields = document.fields;
+    const requiredFields: Record<string, any> = {
+      merchantName: txData.merchantName,
+      total: txData.total,
+      transactionDate: txData.transactionDate,
+      transactionTime: txData.transactionTime,
+    };
 
-    // Check for required fields
-    const requiredFields = ["MerchantName", "Total", "TransactionDate"];
-    for (const field of requiredFields) {
-      if (!fields[field] || !fields[field].content || fields[field].content.toUpperCase().trim() === "UNKNOWN") {
+    for (const [key, value] of Object.entries(requiredFields)) {
+      if (
+        value === null ||
+        value === undefined ||
+        (typeof value === "string" && value.toUpperCase().trim() === "UNKNOWN") ||
+        (typeof value === "string" && value.trim() === "")
+      ) {
+        console.warn(`Invalid receipt: ${key} is invalid (${value})`);
         return false;
       }
     }
 
     return true;
-  }
+  };
 
   const handleCapture = async () => {
     if (!cameraRef) return;
@@ -89,7 +97,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = extractReceiptDetails(analysisResult, publicUrl);
 
-      const isValid = isReceiptValid(analysisResult);
+      const isValid = isReceiptValid(txData);
       if (!isValid) {
         setBottomHeader("Error!")
         setBottomText("Invalid Receipt Format!")
@@ -145,6 +153,28 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     return isNaN(parsed) ? null : parsed; // Return null if parsing fails
   }
 
+  function formatDate(dateString: string): string {
+    //console.log("📅 Parsing transactionDate:", dateString);
+    let parsedDate: string | null = null;
+    try {
+      const extracted = dateString.match(/\d{2}\/\d{2}\/\d{4}/)?.[0]; // "05/28/2025"
+      if (extracted) {
+        const date = parse(extracted, "MM/dd/yyyy", new Date());
+        parsedDate = format(date, "MM-dd-yyyy"); // ISO format for Supabase
+      }
+    } catch (err) {
+      console.error("⚠️ Failed to parse transactionDate:", dateString, err);
+    }
+
+    if (!parsedDate) {
+      console.warn("⚠️ Skipping duplicate check: invalid transactionDate");
+      return "";
+    }
+
+    //console.log("📅 Parsed transactionDate:", parsedDate);
+    return parsedDate || dateString; // Fallback to original if parsing fails
+  }
+
   function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string): TransactionData {
     if (!receipt || !receipt.documents || receipt.documents.length === 0) {
       throw new Error("Invalid receipt data.");
@@ -166,8 +196,20 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     const tx: TransactionData = {
       merchantName: getContent("MerchantName") || "Unknown",
       merchantAddress: getContent("MerchantAddress") || "Unknown",
-      transactionDate: getContent("TransactionDate"),
+      transactionDate: formatDate(getContent("TransactionDate")),
       transactionTime: getContent("TransactionTime"),
+      // transactionTime: (() => {
+      //   const t = getContent("TransactionTime")?.trim();
+      //   if (t && t.length > 0) {
+      //     return t;
+      //   }
+
+      //   // Format current time as "HH:MM:SS"
+      //   const now = new Date();
+      //   const pad = (n: number) => n.toString().padStart(2, "0");
+      //   return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      // })(),
+
       total: formatPrice(getContent("Total")) || 0,
       createdAt: new Date().toISOString(),
       receiptUri: imageUrl,

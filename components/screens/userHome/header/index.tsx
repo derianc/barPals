@@ -73,10 +73,9 @@ const Header = ({ height }: { height: number }) => {
   const now = new Date();
 
   const getStreakEmoji = (streak: number) => {
-    if (streak >= 8) return "🔥";         // hot
-    if (streak >= 4) return "🌶️";        // warm
-    if (streak >= 1) return "🧊";         // cool
-    return "💤";                          // no streak
+    if (streak >= 8) return "🥇"; // Gold
+    if (streak >= 4) return "🥈"; // Silver
+    if (streak >= 0) return "🥉"; // Bronze
   };
 
   // Update all interpolation ranges to match new height values

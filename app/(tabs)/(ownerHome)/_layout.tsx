@@ -17,7 +17,7 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 
-const UserLayout = () => {
+const OwnerLayout = () => {
   const { scrollViewRef, selectedTabIndex }: any =
     useContext(WeatherTabContext);
   const { handleScroll } = useChildVisibility();
@@ -98,7 +98,6 @@ const UserLayout = () => {
         showsVerticalScrollIndicator={false}
       >
         <Slot />
-        {/* consider it like a {children} */}
       </ScrollView>
     </View>
   );
@@ -107,7 +106,7 @@ const UserLayout = () => {
 export default function HomeLayout() {
   return (
     <TabProvider>
-      <UserLayout />
+      <OwnerLayout />
     </TabProvider>
   );
 }

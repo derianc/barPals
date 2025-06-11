@@ -16,7 +16,7 @@ interface WeatherTabContextType {
 
 const WeatherTabContext = createContext({} as WeatherTabContextType);
 
-const WeatherTabProvider = ({ children }: { children: React.ReactNode }) => {
+const TabProvider = ({ children }: { children: React.ReactNode }) => {
   const [isChildVisible, setIsChildVisible] = useState(false);
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
   const scrollViewRef = useRef(null);
@@ -48,4 +48,4 @@ const WeatherTabProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export { WeatherTabContext, WeatherTabProvider };
+export { WeatherTabContext, TabProvider };

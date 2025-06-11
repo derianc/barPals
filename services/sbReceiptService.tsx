@@ -1,10 +1,10 @@
 import { supabase } from "@/supabase";
+import * as Crypto from "expo-crypto";
 import { TransactionData } from "@/data/models/transactionModel";
-import { startOfDay, subDays, isSameDay } from "date-fns";
+import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
 
 
 export async function isReceiptDuplicate(receiptData: TransactionData): Promise<boolean> {
-// 0. Get current authenticated user
   const {
     data: { user },
     error: userError,
@@ -15,7 +15,7 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
     throw new Error("User not authenticated");
   }
 
-  // 1. Check for duplicates
+  // 🔍 Check for duplicates
   const { data: existing, error: findError } = await supabase
     .from("user_receipts")
     .select("id")
@@ -27,15 +27,11 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 
   if (findError) {
     console.error("❌ Error checking for duplicate receipt:", findError);
-    return false; // Assume no duplicate if error occurs
+    return false;
   }
 
-  if (existing && existing.length > 0) {
-    console.log("🔍 Found existing receipt:", existing);
-    return true; // Duplicate found
-  }
-  return false
-};
+  return !!(existing && existing.length > 0);
+}
 
 export async function insertReceiptDetails(receiptData: TransactionData): Promise<boolean> {
   // 0. Get current authenticated user
@@ -50,6 +46,8 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   }
 
   // 1. Insert into user_receipts
+  const venueHash = await generateVenueHash(sanitizeText(receiptData.merchantAddress) ?? "");
+
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
     .insert({
@@ -60,6 +58,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
       transaction_date: parseDate(receiptData.transactionDate),
       transaction_time: receiptData.transactionTime,
       total: receiptData.total,
+      venue_hash: venueHash
     })
     .select()
     .single();
@@ -182,15 +181,45 @@ export async function getConsecutiveReceiptDays(): Promise<number> {
   return count;
 }
 
-export async function deleteReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {
-  const { error } = await supabase
+export async function deleteReceiptById(
+  receiptId: number
+): Promise<{ success: boolean; error?: Error }> {
+  // Step 1: Get the receipt_url
+  const { data: receipt, error: fetchError } = await supabase
+    .from("user_receipts")
+    .select("receipt_url")
+    .eq("id", receiptId)
+    .single();
+
+  if (fetchError || !receipt) {
+    console.error("❌ Failed to fetch receipt for deletion:", fetchError?.message);
+    return { success: false, error: fetchError ?? new Error("Receipt not found") };
+  }
+
+  // Step 2: Extract the file name from the URL
+  // Example URL: https://xyz.supabase.co/storage/v1/object/public/user-receipts/abc123.pdf
+  const urlParts = receipt.receipt_url.split("/");
+  const fileName = urlParts[urlParts.length - 1]; // abc123.pdf
+
+  // Step 3: Delete the file from Supabase Storage
+  const { error: storageError } = await supabase.storage
+    .from("user-receipts")
+    .remove([fileName]); // must match the path used when uploading
+
+  if (storageError) {
+    console.error("❌ Failed to delete file from storage:", storageError.message);
+    return { success: false, error: storageError };
+  }
+
+  // Step 3: Delete the receipt record from the table
+  const { error: deleteError } = await supabase
     .from("user_receipts")
     .delete()
     .eq("id", receiptId);
 
-  if (error) {
-    console.error("❌ Supabase delete error:", error.message);
-    return { success: false, error };
+  if (deleteError) {
+    console.error("❌ Supabase delete error:", deleteError.message);
+    return { success: false, error: deleteError };
   }
 
   return { success: true };
@@ -672,4 +701,17 @@ function parseDate(raw: string | null | undefined): string | null {
   }
 
   return `${year}-${month}-${day}`; // YYYY-MM-DD
+}
+
+export async function generateVenueHash(address: string): Promise<string> {
+  //console.log("🔑 Generating venue hash for address:", address);
+
+  const noSpaces = address.replace(/\s+/g, "");
+  const addressHash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    noSpaces
+  );
+
+  //console.log("🔑 Generated venue hash:", addressHash);
+  return addressHash;
 }

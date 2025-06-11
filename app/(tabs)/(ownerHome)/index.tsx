@@ -26,7 +26,7 @@ import ShimmerCard from "@/components/screens/userHome/shimmer-card/shimmer-card
 /**
  * Timeframe union type includes "day", "7days", "30days", and "all".
  */
-type Timeframe = "day" | "7days" | "30days" | "all";
+type Timeframe = "7days" | "30days" | "all";
 
 const UserHome = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
@@ -71,16 +71,6 @@ const UserHome = () => {
   }, [timeframe]);
 
   async function fetchCurrentAndPreviousMetrics() {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("🔐 Failed to get authenticated user:", userError);
-      throw new Error("User not authenticated");
-    }
-
     // Reset to trigger shimmer
     setCurrentTotalSpend(null);
     setCurrentAvgSpend(null);
@@ -98,16 +88,7 @@ const UserHome = () => {
     let endPrevious: Date | null;
 
     // 5a) Determine windows based on timeframe
-    if (timeframe === "day") {
-      // Today: midnight → now
-      startCurrent = new Date(now);
-      startCurrent.setHours(0, 0, 0, 0);
-
-      // Yesterday: midnight yesterday → midnight today
-      startPrevious = new Date(startCurrent);
-      startPrevious.setDate(startPrevious.getDate() - 1);
-      endPrevious = new Date(startCurrent);
-    } else if (timeframe === "7days") {
+    if (timeframe === "7days") {
       // Last 7 days: midnight 6 days ago → now
       startCurrent = new Date(now);
       startCurrent.setHours(0, 0, 0, 0);
@@ -139,22 +120,80 @@ const UserHome = () => {
       // Total Spend (current)
       // Use service method if timeframe !== "all"; otherwise fetch all receipts
       let currTotal: number;
-      currTotal = await getTotalUserSpend(timeframe);
+      if (timeframe === "all") {
+        const { data: allReceipts, error: allError } = await supabase
+          .from("user_receipts")
+          .select("total");
+        if (allError) throw allError;
+        currTotal =
+          allReceipts?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
+      } else {
+        currTotal = await getTotalUserSpend(timeframe);
+      }
       setCurrentTotalSpend(currTotal);
 
       // Avg Spend (current)
       let currAvg: number;
-      currAvg = await getAverageUserSpend(timeframe);
+      if (timeframe === "all") {
+        const { data: allReceiptsForAvg, error: allAvgError } = await supabase
+          .from("user_receipts")
+          .select("total", { count: "exact" });
+        if (allAvgError) throw allAvgError;
+        const arr = allReceiptsForAvg ?? [];
+        if (arr.length === 0) {
+          currAvg = 0;
+        } else {
+          const sumAll = arr.reduce((sum, r) => sum + (r.total || 0), 0);
+          currAvg = parseFloat((sumAll / arr.length).toFixed(2));
+        }
+      } else {
+        currAvg = await getAverageUserSpend(timeframe);
+      }
       setCurrentAvgSpend(currAvg);
 
       // Venues Visited (current)
       let currVenues: number;
-      currVenues = await getUniqueMerchantsVisited(timeframe);
+      if (timeframe === "all") {
+        const { data: allVenuesData, error: allVenuesError } = await supabase
+          .from("user_receipts")
+          .select("merchant_name");
+        if (allVenuesError) throw allVenuesError;
+        const uniqueAll = new Set(
+          (allVenuesData ?? []).map((r) =>
+            r.merchant_name?.trim().toLowerCase()
+          )
+        );
+        currVenues = uniqueAll.size;
+      } else {
+        currVenues = await getUniqueMerchantsVisited(timeframe);
+      }
       setCurrentVenuesVisited(currVenues);
 
       // Avg Items/Visit (current)
       let currAvgItems: number;
-      currAvgItems = await getAverageItemsPerVisit(timeframe);
+      if (timeframe === "all") {
+        const { data: allReceiptIds, error: allReceiptIdsError } = await supabase
+          .from("user_receipts")
+          .select("id");
+        if (allReceiptIdsError) throw allReceiptIdsError;
+        const allIds = (allReceiptIds ?? []).map((r) => r.id);
+        if (allIds.length === 0) {
+          currAvgItems = 0;
+        } else {
+          const {
+            count: allItemCount,
+            error: allItemCountError,
+          } = await supabase
+            .from("user_receipt_items")
+            .select("id", { head: true, count: "exact" })
+            .in("receipt_id", allIds);
+          if (allItemCountError || allItemCount === null)
+            throw allItemCountError;
+          currAvgItems = parseFloat((allItemCount / allIds.length).toFixed(2));
+        }
+      } else {
+        currAvgItems = await getAverageItemsPerVisit(timeframe);
+      }
       setCurrentAvgItems(currAvgItems);
     } catch (err) {
       console.error("Error fetching current‐period metrics:", err);
@@ -177,11 +216,17 @@ const UserHome = () => {
           await supabase
             .from("user_receipts")
             .select("total")
-            .eq("user_id", user.id)
-            .gte("transaction_date", (startPrevious as Date).toISOString().split("T")[0])
-            .lt("transaction_date", (endPrevious as Date).toISOString().split("T")[0]);
+            .gte(
+              "transaction_date",
+              (startPrevious as Date).toISOString().split("T")[0]
+            )
+            .lt(
+              "transaction_date",
+              (endPrevious as Date).toISOString().split("T")[0]
+            );
         if (prevTotalError) throw prevTotalError;
-        const sumPrevTotal = prevReceipts?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
+        const sumPrevTotal =
+          prevReceipts?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
         setPreviousTotalSpend(sumPrevTotal);
 
         // Previous Avg Spend
@@ -189,15 +234,25 @@ const UserHome = () => {
           await supabase
             .from("user_receipts")
             .select("total", { count: "exact" })
-            .eq("user_id", user.id)
-            .gte("transaction_date", (startPrevious as Date).toISOString().split("T")[0])
-            .lt("transaction_date", (endPrevious as Date).toISOString().split("T")[0]);
+            .gte(
+              "transaction_date",
+              (startPrevious as Date).toISOString().split("T")[0]
+            )
+            .lt(
+              "transaction_date",
+              (endPrevious as Date).toISOString().split("T")[0]
+            );
         if (prevAvgError) throw prevAvgError;
         if ((prevReceiptsForAvg ?? []).length === 0) {
           setPreviousAvgSpend(0);
         } else {
-          const sumPrev = (prevReceiptsForAvg ?? []).reduce((sum, r) => sum + (r.total || 0), 0);
-          setPreviousAvgSpend(parseFloat((sumPrev / prevReceiptsForAvg.length).toFixed(2)));
+          const sumPrev = (prevReceiptsForAvg ?? []).reduce(
+            (sum, r) => sum + (r.total || 0),
+            0
+          );
+          setPreviousAvgSpend(
+            parseFloat((sumPrev / prevReceiptsForAvg.length).toFixed(2))
+          );
         }
 
         // Previous Venues Visited
@@ -205,11 +260,20 @@ const UserHome = () => {
           await supabase
             .from("user_receipts")
             .select("merchant_name")
-            .eq("user_id", user.id)
-            .gte("transaction_date", (startPrevious as Date).toISOString().split("T")[0])
-            .lt("transaction_date", (endPrevious as Date).toISOString().split("T")[0]);
+            .gte(
+              "transaction_date",
+              (startPrevious as Date).toISOString().split("T")[0]
+            )
+            .lt(
+              "transaction_date",
+              (endPrevious as Date).toISOString().split("T")[0]
+            );
         if (prevVenuesError) throw prevVenuesError;
-        const uniquePrev = new Set((prevVenuesData ?? []).map((r) => r.merchant_name?.trim().toLowerCase()));
+        const uniquePrev = new Set(
+          (prevVenuesData ?? []).map((r) =>
+            r.merchant_name?.trim().toLowerCase()
+          )
+        );
         setPreviousVenuesVisited(uniquePrev.size);
 
         // Previous Avg Items/Visit
@@ -217,9 +281,14 @@ const UserHome = () => {
           await supabase
             .from("user_receipts")
             .select("id")
-            .eq("user_id", user.id)
-            .gte("transaction_date", (startPrevious as Date).toISOString().split("T")[0])
-            .lt("transaction_date", (endPrevious as Date).toISOString().split("T")[0]);
+            .gte(
+              "transaction_date",
+              (startPrevious as Date).toISOString().split("T")[0]
+            )
+            .lt(
+              "transaction_date",
+              (endPrevious as Date).toISOString().split("T")[0]
+            );
         if (prevReceiptIdsError) throw prevReceiptIdsError;
         const prevIds = (prevReceiptIds ?? []).map((r) => r.id);
         if (prevIds.length === 0) {
@@ -435,8 +504,6 @@ function formatTimeframeLabel(timeframe: Timeframe): string {
   switch (timeframe) {
     case "all":
       return "All Time";
-    case "day":
-      return "Prev Day";
     case "7days":
       return "Prev 7 Days";
     case "30days":
