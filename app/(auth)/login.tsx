@@ -8,7 +8,8 @@ import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { supabase } from "@/supabase";
+import { getProfile, login } from "@/services/sbUserService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,29 +19,38 @@ export default function LoginPage() {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password.')
-      return
+      Alert.alert("Error", "Please enter both email and password.");
+      return;
     }
 
-    setLoading(true)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    })
-    setLoading(false)
+    setLoading(true);
+    const { authData, error } = await login(email, password);
+    setLoading(false);
 
     if (error) {
-      // If something went wrong, show the error message
-      Alert.alert('Sign-in Error', error.message)
-    } else {
-      // Optional: inspect `data.user` or `data.session` if you need to debug
-      // console.log('Logged in user:', JSON.stringify(data.user, null, 2))
-
-      // On successful login, redirect into the Tabs layout
-      // (i.e. any route under (tabs)/_layout.tsx)
-      router.replace('/(tabs)/(userHome)')
+      Alert.alert("Sign-in Error", error.message);
+      return;
     }
-  }
+
+    const userId = authData.user?.id;
+    if (!userId) {
+      Alert.alert("Error", "Unable to get user ID.");
+      return;
+    }
+
+    const { data: profile, error: profileError } = await getProfile(userId);
+
+    if (profileError || !profile) {
+      Alert.alert("Error", "Failed to load user profile.");
+      return;
+    }
+
+    if (profile.role === "owner") {
+      router.replace("/(tabs)/(ownerHome)");
+    } else {
+      router.replace("/(tabs)/(userHome)");
+    }
+  };
 
   return (
     <LinearGradient

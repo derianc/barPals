@@ -5,20 +5,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
-  Text,
-  TextInput,
-  Switch
-} from "react-native";
+  Text} from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
-import { supabase } from "@/supabase";
-import { getProfile } from "@/services/sbUserService";
+import { getLoggedInUser } from "@/services/sbUserService";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
 import { Camera } from "lucide-react-native";
 import ProfileCard from "@/components/screens/userProfile/profile-card/profileCard";
 import { Icon } from "@/components/ui/icon";
-import { Calendar, Bell } from "lucide-react-native";
+import { Calendar } from "lucide-react-native";
 
 interface UserProfileData {
   id: string;
@@ -39,25 +34,12 @@ const UserProfileDetails = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const {
-        data: session,
-        error: sessionError,
-      } = await supabase.auth.getUser();
+      setLoading(true);
 
-      if (sessionError || !session.user) {
-        console.error("Auth error:", sessionError);
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await getProfile(session.user.id);
-      if (error) {
-        console.error("Profile fetch error:", error);
-      } else {
-        setUser(data);
-      }
-
-      setLoading(false);
+      const userData = await getLoggedInUser()
+      setUser(userData);
+      
+      setLoading(false)
     };
 
     fetchUserData();

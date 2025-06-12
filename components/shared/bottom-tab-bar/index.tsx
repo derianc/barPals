@@ -15,8 +15,7 @@ import {
   User,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { supabase } from "@/supabase";
-import { getProfile } from "@/services/sbUserService";
+import { getLoggedInUser } from "@/services/sbUserService";
 
 interface TabItem {
   name: string;
@@ -32,17 +31,10 @@ function BottomTabBar(props: BottomTabBarProps) {
 
   useEffect(() => {
     const fetchUserTypeAndAvatar = async () => {
-      const { data: session, error: sessionError } = await supabase.auth.getUser();
-      if (sessionError || !session.user) return;
+      const userData = await getLoggedInUser();
 
-      const { data, error } = await getProfile(session.user.id);
-      if (error) {
-        console.error("Failed to load profile:", error);
-        return;
-      }
-
-      setAvatarUrl(data?.avatar_url || null);
-      setUserType(data?.role === "owner" ? "owner" : "user");
+      setAvatarUrl(userData?.avatar_url || null);
+      setUserType(userData?.role === "owner" ? "owner" : "user");
     };
 
     fetchUserTypeAndAvatar();

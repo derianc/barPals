@@ -289,6 +289,44 @@ export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | 
   return total;
 }
 
+export async function getTotalVenueSpend(venueHash: string, timeframe: "7days" | "30days" | "all" = "all"): Promise<number> {
+  
+  const now = new Date();
+  let startDate: Date | null = null;
+
+  switch (timeframe) {
+    case "7days":
+      startDate = new Date(now.setDate(now.getDate() - 7));
+      break;
+    case "30days":
+      startDate = new Date(now.setDate(now.getDate() - 30));
+      break;
+    case "all":
+    default:
+      startDate = null;
+  }
+
+  let query = supabase
+    .from("user_receipts")
+    .select("total")
+    .eq("venue_hash", venueHash);
+
+  if (startDate) {
+    query = query.gte("transaction_date", startDate.toISOString());
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("❌ Error querying total spend:", error);
+    throw new Error("Could not fetch total spend.");
+  }
+
+  const total = data?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
+
+  return total;
+}
+
 export async function getAverageUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
   const {
     data: { user },
@@ -460,7 +498,7 @@ export type SpendBucket = {
 };
 
 export async function getSpendBuckets(
-  timeframe: "day" | "7days" | "30days" | "all" = "all"
+  timeframe: "7days" | "30days" | "all" = "all"
 ): Promise<{ data: SpendBucket[]; error: Error | null }> {
   // 1. Get authenticated user
   const {
@@ -527,48 +565,32 @@ export async function getSpendBuckets(
   type BucketMap = Record<string, number>;
   const bucketMap: BucketMap = {};
 
-  if (timeframe === "day") {
-    for (let hour = 0; hour < 24; hour++) {
-      const label = _formatHourBucket(hour);
-      bucketMap[label] = 0;
-    }
-  } else {
-    const end = new Date();
-    end.setHours(0, 0, 0, 0);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const yyyy = d.getFullYear();
-      const mm = (d.getMonth() + 1).toString().padStart(2, "0");
-      const dd = d.getDate().toString().padStart(2, "0");
-      const label = `${yyyy}-${mm}-${dd}`;
-      bucketMap[label] = 0;
-    }
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const yyyy = d.getFullYear();
+    const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+    const dd = d.getDate().toString().padStart(2, "0");
+    const label = `${yyyy}-${mm}-${dd}`;
+    bucketMap[label] = 0;
   }
 
   // 5. Sum each receipt into the correct bucket
   (receipts ?? []).forEach((r) => {
     const created = new Date(r.transaction_date);
-    if (timeframe === "day") {
-      const hour = created.getHours();
-      const label = _formatHourBucket(hour);
-      bucketMap[label] = (bucketMap[label] || 0) + (r.total || 0);
-    } else {
-      const yyyy = created.getFullYear();
-      const mm = (created.getMonth() + 1).toString().padStart(2, "0");
-      const dd = created.getDate().toString().padStart(2, "0");
-      const label = `${yyyy}-${mm}-${dd}`;
-      if (bucketMap[label] !== undefined) {
-        bucketMap[label] += r.total || 0;
-      }
+
+    const yyyy = created.getFullYear();
+    const mm = (created.getMonth() + 1).toString().padStart(2, "0");
+    const dd = created.getDate().toString().padStart(2, "0");
+    const label = `${yyyy}-${mm}-${dd}`;
+    if (bucketMap[label] !== undefined) {
+      bucketMap[label] += r.total || 0;
     }
   });
 
   // 6. Convert bucketMap to sorted array of SpendBucket
   const sortedKeys = Object.keys(bucketMap).sort((a, b) => {
-    if (timeframe === "day") {
-      return _hourLabelToNumber(a) - _hourLabelToNumber(b);
-    } else {
-      return a.localeCompare(b);
-    }
+    return a.localeCompare(b);
   });
 
   const result: SpendBucket[] = sortedKeys.map((key) => ({
@@ -578,7 +600,6 @@ export async function getSpendBuckets(
 
   return { data: result, error: null };
 }
-
 
 export interface WeekdayVisit {
   day: string;
@@ -704,14 +725,11 @@ function parseDate(raw: string | null | undefined): string | null {
 }
 
 export async function generateVenueHash(address: string): Promise<string> {
-  //console.log("🔑 Generating venue hash for address:", address);
-
   const noSpaces = address.replace(/\s+/g, "");
   const addressHash = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     noSpaces
   );
 
-  //console.log("🔑 Generated venue hash:", addressHash);
   return addressHash;
 }

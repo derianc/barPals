@@ -1,18 +1,15 @@
 import React, { useContext, useEffect, useState } from "react";
 import { HStack } from "@/components/ui/hstack";
-import { Icon, SearchIcon } from "@/components/ui/icon";
 import { VStack } from "@/components/ui/vstack";
 import { Box } from "@/components/ui/box";
 import { ImageBackground } from "@/components/ui/image-background";
-import { Image } from "@/components/ui/image";
 import { ThemeContext } from "@/contexts/theme-context";
 import { format } from "date-fns";
 import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { getProfile } from "@/services/sbUserService";
-import { supabase } from "@/supabase";
+import { getLoggedInUser } from "@/services/sbUserService";
 import { getConsecutiveReceiptDays } from "@/services/sbReceiptService";
 
 
@@ -36,23 +33,11 @@ const Header = ({ height }: { height: number }) => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const {
-        data: session,
-        error: sessionError,
-      } = await supabase.auth.getUser();
-
-      if (sessionError || !session.user) {
-        console.error("Auth error:", sessionError);
-        return;
-      }
-
-      const { data, error } = await getProfile(session.user.id);
-      if (error) {
-        console.error("Profile fetch error:", error);
-      } else {
-        setUser(data);
-        if (data.full_name) {
-          setDisplayName(data.full_name);
+      const userData = await getLoggedInUser();
+      if(userData) {
+        setUser(userData);
+        if (userData.full_name) {
+          setDisplayName(userData.full_name);
         }
       }
     };

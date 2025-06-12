@@ -1,6 +1,5 @@
 import React from "react";
 import { VStack } from "@/components/ui/vstack";
-import { supabase } from "@/supabase";
 import UserOfferHeader from "@/components/shared/custom-header/userOfferHeader";
 
 

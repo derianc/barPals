@@ -13,7 +13,7 @@ import {
   getAverageItemsPerVisit,
   getAverageUserSpend,
   getSpendBuckets,
-  getTotalUserSpend,
+  getTotalVenueSpend,
   getUniqueMerchantsVisited,
   getUniqueVisitsByWeekday,
   SpendBucket,
@@ -22,13 +22,14 @@ import { DollarSign, StoreIcon, PackageIcon, Box, CloudRain } from "lucide-react
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/userHome/shimmer-card/shimmer-card";
+import { getSelectedVenueHash } from "@/services/sbVenueService";
 
 /**
  * Timeframe union type includes "day", "7days", "30days", and "all".
  */
 type Timeframe = "7days" | "30days" | "all";
 
-const UserHome = () => {
+const OwnerHome = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
   const AnimatedVStack = Animated.createAnimatedComponent(VStack);
 
@@ -117,84 +118,35 @@ const UserHome = () => {
 
     // 5b) FETCH CURRENT PERIOD METRICS
     try {
+      const venueHash = await getSelectedVenueHash();
+
+      console.log("Venue Hash:", venueHash);
+      if (!venueHash) {
+        console.warn("❌ No venueHash available – skipping metric fetch.");
+        return;
+      }
+
       // Total Spend (current)
       // Use service method if timeframe !== "all"; otherwise fetch all receipts
       let currTotal: number;
-      if (timeframe === "all") {
-        const { data: allReceipts, error: allError } = await supabase
-          .from("user_receipts")
-          .select("total");
-        if (allError) throw allError;
-        currTotal =
-          allReceipts?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
-      } else {
-        currTotal = await getTotalUserSpend(timeframe);
-      }
+      currTotal = await getTotalVenueSpend(venueHash, timeframe);
       setCurrentTotalSpend(currTotal);
 
       // Avg Spend (current)
       let currAvg: number;
-      if (timeframe === "all") {
-        const { data: allReceiptsForAvg, error: allAvgError } = await supabase
-          .from("user_receipts")
-          .select("total", { count: "exact" });
-        if (allAvgError) throw allAvgError;
-        const arr = allReceiptsForAvg ?? [];
-        if (arr.length === 0) {
-          currAvg = 0;
-        } else {
-          const sumAll = arr.reduce((sum, r) => sum + (r.total || 0), 0);
-          currAvg = parseFloat((sumAll / arr.length).toFixed(2));
-        }
-      } else {
-        currAvg = await getAverageUserSpend(timeframe);
-      }
+      currAvg = await getAverageUserSpend(timeframe);
       setCurrentAvgSpend(currAvg);
 
       // Venues Visited (current)
       let currVenues: number;
-      if (timeframe === "all") {
-        const { data: allVenuesData, error: allVenuesError } = await supabase
-          .from("user_receipts")
-          .select("merchant_name");
-        if (allVenuesError) throw allVenuesError;
-        const uniqueAll = new Set(
-          (allVenuesData ?? []).map((r) =>
-            r.merchant_name?.trim().toLowerCase()
-          )
-        );
-        currVenues = uniqueAll.size;
-      } else {
-        currVenues = await getUniqueMerchantsVisited(timeframe);
-      }
+      currVenues = await getUniqueMerchantsVisited(timeframe);
       setCurrentVenuesVisited(currVenues);
 
       // Avg Items/Visit (current)
       let currAvgItems: number;
-      if (timeframe === "all") {
-        const { data: allReceiptIds, error: allReceiptIdsError } = await supabase
-          .from("user_receipts")
-          .select("id");
-        if (allReceiptIdsError) throw allReceiptIdsError;
-        const allIds = (allReceiptIds ?? []).map((r) => r.id);
-        if (allIds.length === 0) {
-          currAvgItems = 0;
-        } else {
-          const {
-            count: allItemCount,
-            error: allItemCountError,
-          } = await supabase
-            .from("user_receipt_items")
-            .select("id", { head: true, count: "exact" })
-            .in("receipt_id", allIds);
-          if (allItemCountError || allItemCount === null)
-            throw allItemCountError;
-          currAvgItems = parseFloat((allItemCount / allIds.length).toFixed(2));
-        }
-      } else {
-        currAvgItems = await getAverageItemsPerVisit(timeframe);
-      }
+      currAvgItems = await getAverageItemsPerVisit(timeframe);
       setCurrentAvgItems(currAvgItems);
+
     } catch (err) {
       console.error("Error fetching current‐period metrics:", err);
       setCurrentTotalSpend(0);
@@ -498,7 +450,7 @@ const UserHome = () => {
   );
 };
 
-export default UserHome;
+export default OwnerHome;
 
 function formatTimeframeLabel(timeframe: Timeframe): string {
   switch (timeframe) {
