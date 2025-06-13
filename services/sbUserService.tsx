@@ -9,6 +9,20 @@ export interface RegisterResult {
   profileError?: PostgrestError | null;
 }
 
+export interface UserProfileData {
+  id: string;
+  email: string;
+  deviceToken?: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  role: "user" | "owner" | "admin" | string;
+  is_active: boolean;
+  allow_notifications: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 const STORAGE_KEY = "loggedInUser";
 
 
@@ -20,7 +34,10 @@ export async function login(email: string, password: string) {
 
   // ✅ Save profile to local storage
   try {
-    await AsyncStorage.setItem("STORAGE_KEY", JSON.stringify(data));
+    const profile = await getProfile()
+    console.log('saving profile to storage', JSON.stringify(profile, null, 2))
+    await AsyncStorage.setItem("STORAGE_KEY", JSON.stringify(profile));
+
   } catch (storageError) {
     console.warn("⚠️ Failed to save profile to storage:", storageError);
   }
@@ -30,72 +47,103 @@ export async function login(email: string, password: string) {
 
 export async function logout(){
   const {error} = await supabase.auth.signOut();
+  await AsyncStorage.multiRemove([STORAGE_KEY, "selectedVenueId"]);
 
   if (error) {
     console.error("Logout failed:", error.message);
     return { error };
   }
 
-  try {
-    await AsyncStorage.removeItem("STORAGE_KEY");
-    console.log("✅ User profile removed from local storage.");
-  } catch (storageError) {
-    console.warn("⚠️ Failed to remove user profile from storage:", storageError);
-  }
-
   return { error: null };
 }
 
-export async function getLoggedInUser(): Promise<any | null> {
+export async function getLoggedInUser(): Promise<UserProfileData | null> {
+  // 1. Try reading from local storage first
   try {
-    // Step 1: Check local storage
-    const cachedProfileStr = await AsyncStorage.getItem(STORAGE_KEY);
-    if (cachedProfileStr) {
-      const cachedProfile = JSON.parse(cachedProfileStr);
-      return cachedProfile;
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as UserProfileData;
+      return parsed;
     }
+  } catch (e) {
+    console.warn("⚠️ Failed to read user from local storage:", e);
+  }
 
-    // Step 2: Get Supabase session
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
+  // 2. Fallback: Check Supabase session + fetch from DB
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    if (sessionError || !session?.user?.id) {
-      console.error("❌ No active session or user ID found:", sessionError?.message);
-      return null;
-    }
-
-    const userId = session.user.id;
-
-    // Step 3: Fetch profile from database
-    const { data: profile, error: profileError } = await supabase
+  if (session?.user?.id) {
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", userId)
+      .eq("id", session.user.id)
       .single();
 
-    if (profileError || !profile) {
-      console.error("❌ Failed to fetch profile:", profileError?.message);
-      return null;
+    if (error) {
+      console.warn("⚠️ Failed to load profile from Supabase:", error.message);
+    } else if (profile) {
+      // Optional: Cache in localStorage
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+      } catch (e) {
+        console.warn("⚠️ Failed to save profile to local storage:", e);
+      }
+
+      return profile as UserProfileData;
     }
-
-    // Step 4: Cache profile for future use
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-
-    return profile;
-  } catch (err) {
-    console.error("❌ Unexpected error in getLoggedInUser:", err);
-    return null;
   }
+
+  return null;
 }
 
-export async function getProfile(userId: string) {
+export async function getLoggedInUserId(): Promise<string | null> {
+  // First try local storage (global context should already be hydrated)
+  try {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.id) {
+        return parsed.id;
+      }
+    }
+  } catch (e) {
+    console.warn("⚠️ Failed to parse user from AsyncStorage:", e);
+  }
+
+  // Fallback to Supabase session
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    console.error("❌ Failed to get user from Supabase session:", error?.message);
+    return null;
+  }
+
+  return user.id;
+}
+
+
+export async function getProfile(): Promise<{ data: UserProfileData | null; error: PostgrestError | null } | null> {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError || !session?.user?.id) {
+    console.error("❌ No active session:", sessionError?.message);
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", userId)
+    .eq("id", session.user.id)
     .single();
+
   return { data, error };
 }
 

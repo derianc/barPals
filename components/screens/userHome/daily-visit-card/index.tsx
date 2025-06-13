@@ -72,13 +72,13 @@ const VisitProgressBar = ({
   const progressAnim = useSharedValue(0);
 
   useEffect(() => {
-  if (animated) {
-    progressAnim.value = withTiming(percent, { duration: 500 });
-    incrementAnimation();
-  } else {
-    progressAnim.value = percent;
-  }
-}, [animated, percent]);
+    if (animated) {
+      progressAnim.value = withTiming(percent, { duration: 500 });
+      incrementAnimation();
+    } else {
+      progressAnim.value = percent;
+    }
+  }, [animated, percent]);
 
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressAnim.value}%`,
@@ -86,7 +86,9 @@ const VisitProgressBar = ({
 
   return (
     <HStack className="items-center gap-2">
-      <Text className="w-6 text-typography-400 font-dm-sans-regular">{day}</Text>
+      <Text className="w-10 text-typography-400 font-dm-sans-regular text-left">
+        {day}
+      </Text>
 
       <Box className="flex-1">
         <Progress value={animated ? percent : 0} className="w-full h-3 bg-background-200">
@@ -94,7 +96,7 @@ const VisitProgressBar = ({
         </Progress>
       </Box>
 
-      <Text className="w-8 text-right text-typography-100 font-dm-sans-medium">{count}</Text>
+      <Text className="text-typography-100 font-dm-sans-medium">{count}</Text>
     </HStack>
   );
 };

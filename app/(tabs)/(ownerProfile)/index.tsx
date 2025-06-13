@@ -19,6 +19,7 @@ import { Icon } from "@/components/ui/icon";
 import { Calendar, Bell } from "lucide-react-native";
 import OwnerProfileCard from "@/components/screens/ownerProfile/profile-card/ownerProfileCard";
 import { getVenuesForProfile, Venue } from "@/services/sbVenueService";
+import { useUser } from "@/contexts/userContext";
 
 interface UserProfileData {
   id: string;
@@ -34,29 +35,19 @@ interface UserProfileData {
 }
 
 const OwnerProfileDetails = () => {
-  const [user, setUser] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [venuesList, setVenueList] = useState<Venue[]>([]);
+  const { user, setUser } = useUser();
 
   useEffect(() => {
     const fetchVenues = async () => {
       const venues = await getVenuesForProfile(); // [{ venue: { ... } }]
       //const flattened = raw.map((v) => v.venue); // [{ id, name, address }]
       setVenueList(venues);
-    };
-
-    fetchVenues();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const userData = await getLoggedInUser();
-      setUser(userData);
-
       setLoading(false);
     };
 
-    fetchUserData();
+    fetchVenues();
   }, []);
 
   // const handlePickImage = async () => {
@@ -116,7 +107,7 @@ const OwnerProfileDetails = () => {
   }
 
   return (
-    <VStack space="md" className="flex-1 bg-background-0">  
+    <VStack space="md" className="flex-1 bg-background-0">
       <UserProfileHeader />
 
       {/* Overlapping Avatar */}
@@ -157,12 +148,10 @@ const OwnerProfileDetails = () => {
         username={user?.username || ""}
         created_at={user?.created_at || ""}
         allow_notifications={user?.allow_notifications ?? false}
-        onEditName={(val) => setUser((prev) => prev && { ...prev, full_name: val })}
-        onToggleNotifications={(val) => setUser((prev) => prev && { ...prev, allow_notifications: val })} 
+        onEditName={(val) => { if (user) setUser({ ...user, full_name: val }); }}
+        onToggleNotifications={(val) => { if (user) setUser({ ...user, allow_notifications: val }); }}
         venues={venuesList}
       />
-
-
     </VStack>
   );
 };
@@ -199,53 +188,53 @@ const styles = StyleSheet.create({
     borderColor: "#fff",
   },
   profileSummary: {
-  marginTop: 80,
-  alignItems: "center",
-},
-userName: {
-  fontSize: 18,
-  fontWeight: "bold",
-  color: "#F9FAFB",
-},
-joinDate: {
-  fontSize: 13,
-  color: "#6B7280",
-  marginTop: 4,
-},
+    marginTop: 80,
+    alignItems: "center",
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#F9FAFB",
+  },
+  joinDate: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 4,
+  },
 
-accountCard: {
-  backgroundColor: "#F3F4F6", // soft gray
-  marginTop: 24,
-  marginHorizontal: 20,
-  borderRadius: 16,
-  padding: 16,
-},
-accountTitle: {
-  fontSize: 14,
-  fontWeight: "bold",
-  color: "#374151",
-  marginBottom: 12,
-},
-accountRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 16,
-},
-accountLabel: {
-  fontSize: 14,
-  color: "#4B5563",
-},
-input: {
-  backgroundColor: "#fff",
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  fontSize: 14,
-  color: "#111827",
-  minWidth: 160,
-  elevation: 1,
-},
+  accountCard: {
+    backgroundColor: "#F3F4F6", // soft gray
+    marginTop: 24,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+  },
+  accountTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  accountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  accountLabel: {
+    fontSize: 14,
+    color: "#4B5563",
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: "#111827",
+    minWidth: 160,
+    elevation: 1,
+  },
 
 
 });

@@ -34,22 +34,11 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
   const lineData =
   data && data.length > 0
     ? (() => {
-        const points = data.map((bucket) => {
-          const rawLabel = bucket.label;
-          let displayLabel: string;
-
-          if (rawLabel.includes(":")) {
-            displayLabel = rawLabel;
-          } else {
-            displayLabel = rawLabel.slice(5); // "YYYY-MM-DD" → "MM-DD"
-          }
-
-          return {
+        const points = data.map((bucket) => ({
             value: typeof bucket.total === "number" ? bucket.total : 0,
-            label: displayLabel,
+            label: bucket.label,
             dataPointColor: bucket.total === 0 ? "#ccc" : "#b68cd4",
-          };
-        });
+        }));
 
         const trailingPoint = points.length > 0 ? points[points.length - 1] : { value: 0 };
 
@@ -153,8 +142,7 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
                   color: colorMode === "dark" ? "#F5F5F5" : "#262627",
                   textAlign: "right",
                   // For hourly labels, bump font size a bit:
-                  fontSize:
-                    timeframe === "day" ? (shouldRotate ? 10 : 12) : shouldRotate ? 10 : 12,
+                  fontSize: timeframe === "day" ? (shouldRotate ? 10 : 12) : shouldRotate ? 10 : 12,
                   transform: shouldRotate ? [{ rotate: "-45deg" }] : [],
                 }}
                 xAxisColor={colorMode === "dark" ? "#414141" : "#d3d3d3"}

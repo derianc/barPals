@@ -13,3 +13,8 @@ const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 };
 
 export { ThemeContext, ThemeProvider };
+
+export interface ThemeContextType {
+  colorMode: "light" | "dark";
+  toggleTheme?: () => void;
+}

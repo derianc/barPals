@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import ModalDropdown from 'react-native-modal-dropdown';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
+import { useUser } from "@/contexts/userContext";
 
 interface Venue {
     id: string;
@@ -44,6 +45,7 @@ const OwnerProfileCard = ({
     const scale = useSharedValue(1);
     const router = useRouter();
     const [selectedVenueId, setSelectedVenueId] = useState<string>("");
+    const { setUser } = useUser();
 
     useEffect(() => {
         if (venues.length > 0) {
@@ -84,9 +86,18 @@ const OwnerProfileCard = ({
     };
 
     const handleLogout = async () => {
-        logout();
+        const { error } = await logout();
 
-        router.replace("/login"); // adjust if your login route is different
+        if (error) {
+            //console("Logout Error", error.message);
+            return;
+        }
+
+        // ✅ Clear global context
+        setUser(null);
+
+        // ✅ Navigate to login or splash screen
+        router.replace("/login");
     };
 
     return (

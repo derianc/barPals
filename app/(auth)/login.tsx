@@ -10,12 +10,14 @@ import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { getProfile, login } from "@/services/sbUserService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useUser } from "@/contexts/userContext";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("derianc@gmail.com");
   const [password, setPassword] = useState("Test123!");
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const { setUser } = useUser();
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -32,20 +34,20 @@ export default function LoginPage() {
       return;
     }
 
-    const userId = authData.user?.id;
-    if (!userId) {
-      Alert.alert("Error", "Unable to get user ID.");
-      return;
-    }
-
-    const { data: profile, error: profileError } = await getProfile(userId);
-
-    if (profileError || !profile) {
+    // 🔁 Load and apply user profile into context
+    const profileResult = await getProfile();
+    if (!profileResult || profileResult.error || !profileResult.data) {
       Alert.alert("Error", "Failed to load user profile.");
       return;
     }
 
-    if (profile.role === "owner") {
+    // update global context
+    setUser(profileResult.data);
+
+    // update local storage
+    await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
+
+    if (profileResult.data.role === "owner") {
       router.replace("/(tabs)/(ownerHome)");
     } else {
       router.replace("/(tabs)/(userHome)");

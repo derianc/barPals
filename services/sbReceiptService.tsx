@@ -2,19 +2,11 @@ import { supabase } from "@/supabase";
 import * as Crypto from "expo-crypto";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
+import { getLoggedInUserId } from "./sbUserService";
 
 
 export async function isReceiptDuplicate(receiptData: TransactionData): Promise<boolean> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   // 🔍 Check for duplicates
   const { data: existing, error: findError } = await supabase
     .from("user_receipts")
@@ -34,24 +26,15 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 }
 
 export async function insertReceiptDetails(receiptData: TransactionData): Promise<boolean> {
-  // 0. Get current authenticated user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   // 1. Insert into user_receipts
   const venueHash = await generateVenueHash(sanitizeText(receiptData.merchantAddress) ?? "");
 
+  const userId = await getLoggedInUserId()
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
     .insert({
-      user_id: user.id,
+      user_id: userId,
       receipt_url: sanitizeText(receiptData.receiptUri),
       merchant_name: sanitizeText(receiptData.merchantName),
       merchant_address: sanitizeText(receiptData.merchantAddress),
@@ -103,22 +86,13 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
 }
 
 export async function getAllReceiptsForUser() {
-  // 1. Get current authenticated user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  const userId = await getLoggedInUserId()
   // 2. Query receipts with embedded item count
   const { data, error } = await supabase
     .from("user_receipts")
     .select(`*, user_receipt_items(count)`)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("transaction_date", { ascending: false })
     .order("transaction_time", { ascending: false });
 
@@ -138,22 +112,13 @@ export async function getAllReceiptsForUser() {
 }
 
 export async function getConsecutiveReceiptDays(): Promise<number> {
-  // 1. Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    return 0;
-  }
+  const userId = await getLoggedInUserId()
 
   // 2. Fetch distinct transaction dates (deduped per day)
   const { data, error } = await supabase
     .from("user_receipts")
     .select("transaction_date")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("transaction_date", { ascending: false });
 
   if (error || !data) {
@@ -240,16 +205,7 @@ export async function archiveReceiptById(receiptId: number): Promise<{ success: 
 }
 
 export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   const now = new Date();
   let startDate: Date | null = null;
 
@@ -268,48 +224,11 @@ export async function getTotalUserSpend(timeframe: "day" | "7days" | "30days" | 
       startDate = null;
   }
 
+  const userId = await getLoggedInUserId()
   let query = supabase
     .from("user_receipts")
     .select("total")
-    .eq("user_id", user.id);
-
-  if (startDate) {
-    query = query.gte("transaction_date", startDate.toISOString());
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("❌ Error querying total spend:", error);
-    throw new Error("Could not fetch total spend.");
-  }
-
-  const total = data?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
-
-  return total;
-}
-
-export async function getTotalVenueSpend(venueHash: string, timeframe: "7days" | "30days" | "all" = "all"): Promise<number> {
-  
-  const now = new Date();
-  let startDate: Date | null = null;
-
-  switch (timeframe) {
-    case "7days":
-      startDate = new Date(now.setDate(now.getDate() - 7));
-      break;
-    case "30days":
-      startDate = new Date(now.setDate(now.getDate() - 30));
-      break;
-    case "all":
-    default:
-      startDate = null;
-  }
-
-  let query = supabase
-    .from("user_receipts")
-    .select("total")
-    .eq("venue_hash", venueHash);
+    .eq("user_id", userId);
 
   if (startDate) {
     query = query.gte("transaction_date", startDate.toISOString());
@@ -328,16 +247,7 @@ export async function getTotalVenueSpend(venueHash: string, timeframe: "7days" |
 }
 
 export async function getAverageUserSpend(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   const now = new Date();
   let startDate: Date | null = null;
 
@@ -356,10 +266,11 @@ export async function getAverageUserSpend(timeframe: "day" | "7days" | "30days" 
       startDate = null;
   }
 
+  const userId = await getLoggedInUserId()
   let query = supabase
     .from("user_receipts")
     .select("total")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   if (startDate) {
     query = query.gte("transaction_date", startDate.toISOString());
@@ -379,16 +290,7 @@ export async function getAverageUserSpend(timeframe: "day" | "7days" | "30days" 
 }
 
 export async function getUniqueMerchantsVisited(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   const now = new Date();
   let startDate: Date | null = null;
 
@@ -407,10 +309,11 @@ export async function getUniqueMerchantsVisited(timeframe: "day" | "7days" | "30
       startDate = null;
   }
 
+  const userId = await getLoggedInUserId()
   let query = supabase
     .from("user_receipts")
     .select("merchant_name", { count: "exact" }) // we’ll use JS for uniqueness
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   if (startDate) {
     query = query.gte("transaction_date", startDate.toISOString());
@@ -428,16 +331,7 @@ export async function getUniqueMerchantsVisited(timeframe: "day" | "7days" | "30
 }
 
 export async function getAverageItemsPerVisit(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<number> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  
   const now = new Date();
   let startDate: Date | null = null;
 
@@ -456,11 +350,12 @@ export async function getAverageItemsPerVisit(timeframe: "day" | "7days" | "30da
       startDate = null;
   }
 
+  const userId = await getLoggedInUserId()
   // 1. Fetch receipt IDs for user in timeframe
   let receiptsQuery = supabase
     .from("user_receipts")
     .select("id")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   if (startDate) {
     receiptsQuery = receiptsQuery.gte("transaction_date", startDate.toISOString());
@@ -500,26 +395,17 @@ export type SpendBucket = {
 export async function getSpendBuckets(
   timeframe: "7days" | "30days" | "all" = "all"
 ): Promise<{ data: SpendBucket[]; error: Error | null }> {
-  // 1. Get authenticated user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    return { data: [], error: userError ?? new Error("User not authenticated") };
-  }
-
-  // 2. Determine start date
+  // 1. Determine start date
   const now = new Date();
-  let start: Date;
+  const userId = await getLoggedInUserId()
+
+  let start: Date;  
 
   if (timeframe === "all") {
     const { data: oldest, error: oldestError } = await supabase
       .from("user_receipts")
       .select("transaction_date")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("transaction_date", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -543,10 +429,11 @@ export async function getSpendBuckets(
   }
 
   // 3. Fetch receipts in the date range for this user
+  
   let query = supabase
     .from("user_receipts")
     .select("transaction_date, total")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   if (timeframe !== "all") {
     query = query.gte("transaction_date", start.toISOString());
@@ -607,16 +494,7 @@ export interface WeekdayVisit {
 }
 
 export async function getUniqueVisitsByWeekday(timeframe: "day" | "7days" | "30days" | "all" = "all"): Promise<WeekdayVisit[]> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    console.error("🔐 Failed to get authenticated user:", userError);
-    throw new Error("User not authenticated");
-  }
-
+  const userId = await getLoggedInUserId()
   const now = new Date();
   let startDate: Date | null = null;
 
@@ -638,7 +516,7 @@ export async function getUniqueVisitsByWeekday(timeframe: "day" | "7days" | "30d
   // Build query
   let query = supabase.from("user_receipts")
     .select("transaction_date")
-    .eq("user_id", user.id);
+    .eq("user_id", userId);
 
   // Only filter by date if not "all"
   if (startDate) {

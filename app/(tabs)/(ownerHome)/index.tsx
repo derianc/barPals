@@ -1,6 +1,6 @@
-// components/screens/userHome/index.tsx
+// index.tsx
 
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
@@ -8,424 +8,219 @@ import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
 import { WeatherTabContext } from "@/contexts/user-home-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { supabase } from "@/supabase";
-import {
-  getAverageItemsPerVisit,
-  getAverageUserSpend,
-  getSpendBuckets,
-  getTotalVenueSpend,
-  getUniqueMerchantsVisited,
-  getUniqueVisitsByWeekday,
-  SpendBucket,
-} from "@/services/sbReceiptService";
-import { DollarSign, StoreIcon, PackageIcon, Box, CloudRain } from "lucide-react-native";
+import { DollarSign, StoreIcon, PackageIcon } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/userHome/shimmer-card/shimmer-card";
 import { getSelectedVenueHash } from "@/services/sbVenueService";
+import {
+  getSpendBuckets,
+  getUniqueVisitsByWeekday,
+  SpendBucket,
+} from "@/services/sbReceiptService";
+import {
+  getCurrentAndPreviousTotalVenueSpend,
+  getAverageSpendPerCustomer,
+  getUniqueVisitorsToVenue,
+  getAverageItemsPerCustomer,
+  getVenueSpendTrend,
+  getVenueVisitsByDay,
+} from "@/services/sbOwnerReceiptService";
 
-/**
- * Timeframe union type includes "day", "7days", "30days", and "all".
- */
 type Timeframe = "7days" | "30days" | "all";
 
 const OwnerHome = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
   const AnimatedVStack = Animated.createAnimatedComponent(VStack);
-
   const { selectedTabIndex } = useContext(WeatherTabContext);
+  const hasAnimatedRef = useRef(false);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-
-  // 1) Define your timeframe here. Change as needed:
-  // const timeframe: Timeframe = "day"; // Options: "day", "7days", "30days", "all"
   const timeframe: Timeframe =
-    selectedTabIndex === 0
-      ? "7days"
-      : selectedTabIndex === 1
-        ? "30days"
-        : selectedTabIndex === 2
-          ? "all"
-          : "all";
+    selectedTabIndex === 0 ? "7days" :
+    selectedTabIndex === 1 ? "30days" : "all";
 
-
-  // 2) State for “current” metrics
   const [currentTotalSpend, setCurrentTotalSpend] = useState<number | null>(null);
   const [currentAvgSpend, setCurrentAvgSpend] = useState<number | null>(null);
   const [currentVenuesVisited, setCurrentVenuesVisited] = useState<number | null>(null);
   const [currentAvgItems, setCurrentAvgItems] = useState<number | null>(null);
 
-  // 3) State for “previous” metrics (for arrow comparisons)
+  const [totalSpendChange, setTotalSpendChange] = useState<number | null>(null);
+  const [avgSpendChange, setAvgSpendChange] = useState<number | null>(null);
+  const [visitorsChange, setVisitorsChange] = useState<number | null>(null);
+  const [itemsPerVisitChange, setItemsPerVisitChange] = useState<number | null>(null);
+
   const [previousTotalSpend, setPreviousTotalSpend] = useState<number | null>(null);
   const [previousAvgSpend, setPreviousAvgSpend] = useState<number | null>(null);
   const [previousVenuesVisited, setPreviousVenuesVisited] = useState<number | null>(null);
   const [previousAvgItems, setPreviousAvgItems] = useState<number | null>(null);
 
-  // 4) State for chart buckets and loading flag
   const [spendData, setSpendData] = useState<SpendBucket[]>([]);
   const [spendLoading, setSpendLoading] = useState<boolean>(true);
-
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
+  const [venueHash, setVenueHash] = useState<string | null>(null);
 
-  // 5) Fetch both “current” and “previous” metrics whenever timeframe changes
   useEffect(() => {
-    fetchCurrentAndPreviousMetrics();
-  }, [timeframe]);
+    getSelectedVenueHash().then(setVenueHash);
+  }, []);
+
+  useEffect(() => {
+    if (venueHash) {
+      fetchCurrentAndPreviousMetrics();
+    }
+  }, [timeframe, venueHash]);
 
   async function fetchCurrentAndPreviousMetrics() {
-    // Reset to trigger shimmer
-    setCurrentTotalSpend(null);
-    setCurrentAvgSpend(null);
-    setCurrentVenuesVisited(null);
-    setCurrentAvgItems(null);
-    setPreviousTotalSpend(null);
-    setPreviousAvgSpend(null);
-    setPreviousVenuesVisited(null);
-    setPreviousAvgItems(null);
+    if (!venueHash) return;
 
+    setMetricsLoading(true);
 
     const now = new Date();
-    let startCurrent: Date | null;
-    let startPrevious: Date | null;
-    let endPrevious: Date | null;
+    let startCurrent: Date | null = null;
+    let endCurrent: Date | null = null;
 
-    // 5a) Determine windows based on timeframe
     if (timeframe === "7days") {
-      // Last 7 days: midnight 6 days ago → now
-      startCurrent = new Date(now);
+      endCurrent = now;
+      startCurrent = new Date(endCurrent);
       startCurrent.setHours(0, 0, 0, 0);
       startCurrent.setDate(startCurrent.getDate() - 6);
-
-      // Previous 7 days: midnight 14 days ago → midnight 7 days ago
-      endPrevious = new Date(startCurrent);
-      startPrevious = new Date(endPrevious);
-      startPrevious.setDate(startPrevious.getDate() - 7);
     } else if (timeframe === "30days") {
-      // Last 30 days: midnight 29 days ago → now
-      startCurrent = new Date(now);
+      endCurrent = now;
+      startCurrent = new Date(endCurrent);
       startCurrent.setHours(0, 0, 0, 0);
       startCurrent.setDate(startCurrent.getDate() - 29);
-
-      // Previous 30 days: midnight 59 days ago → midnight 30 days ago
-      endPrevious = new Date(startCurrent);
-      startPrevious = new Date(endPrevious);
-      startPrevious.setDate(startPrevious.getDate() - 30);
-    } else {
-      // “all”: no lower bound → compare against zero
-      startCurrent = null;
-      startPrevious = null;
-      endPrevious = null;
     }
 
-    // 5b) FETCH CURRENT PERIOD METRICS
     try {
-      const venueHash = await getSelectedVenueHash();
+      const [
+        totalSpend,
+        avgSpend,
+        totalCust,
+        avgItems,
+        trend,
+        visitsByDay
+      ] = await Promise.all([
+        getCurrentAndPreviousTotalVenueSpend(startCurrent, endCurrent, venueHash),
+        getAverageSpendPerCustomer(startCurrent, endCurrent, venueHash),
+        getUniqueVisitorsToVenue(startCurrent, endCurrent, venueHash),
+        getAverageItemsPerCustomer(startCurrent, endCurrent, venueHash),
+        getVenueSpendTrend(startCurrent, endCurrent, venueHash),
+        getVenueVisitsByDay(startCurrent, endCurrent, venueHash)
+      ]);
 
-      console.log("Venue Hash:", venueHash);
-      if (!venueHash) {
-        console.warn("❌ No venueHash available – skipping metric fetch.");
-        return;
-      }
+      setCurrentTotalSpend(totalSpend.current);
+      setPreviousTotalSpend(totalSpend.previous);
+      setTotalSpendChange(totalSpend.percentChange);
 
-      // Total Spend (current)
-      // Use service method if timeframe !== "all"; otherwise fetch all receipts
-      let currTotal: number;
-      currTotal = await getTotalVenueSpend(venueHash, timeframe);
-      setCurrentTotalSpend(currTotal);
+      setCurrentAvgSpend(avgSpend.current);
+      setPreviousAvgSpend(avgSpend.previous);
+      setAvgSpendChange(avgSpend.percentChange);
 
-      // Avg Spend (current)
-      let currAvg: number;
-      currAvg = await getAverageUserSpend(timeframe);
-      setCurrentAvgSpend(currAvg);
+      setCurrentVenuesVisited(totalCust.current);
+      setPreviousVenuesVisited(totalCust.previous);
+      setVisitorsChange(totalCust.percentChange);
 
-      // Venues Visited (current)
-      let currVenues: number;
-      currVenues = await getUniqueMerchantsVisited(timeframe);
-      setCurrentVenuesVisited(currVenues);
+      setCurrentAvgItems(avgItems.current);
+      setPreviousAvgItems(avgItems.previous);
+      setItemsPerVisitChange(avgItems.percentChange);
 
-      // Avg Items/Visit (current)
-      let currAvgItems: number;
-      currAvgItems = await getAverageItemsPerVisit(timeframe);
-      setCurrentAvgItems(currAvgItems);
+      setSpendData(trend.data);
 
-    } catch (err) {
-      console.error("Error fetching current‐period metrics:", err);
-      setCurrentTotalSpend(0);
-      setCurrentAvgSpend(0);
-      setCurrentVenuesVisited(0);
-      setCurrentAvgItems(0);
-    }
+      setDailyVisits(visitsByDay.data);
 
-    // 5c) FETCH PREVIOUS PERIOD METRICS (skip if timeframe === "all")
-    if (timeframe === "all") {
-      setPreviousTotalSpend(0);
-      setPreviousAvgSpend(0);
-      setPreviousVenuesVisited(0);
-      setPreviousAvgItems(0);
-    } else {
-      try {
-        // Previous Total Spend
-        const { data: prevReceipts, error: prevTotalError } =
-          await supabase
-            .from("user_receipts")
-            .select("total")
-            .gte(
-              "transaction_date",
-              (startPrevious as Date).toISOString().split("T")[0]
-            )
-            .lt(
-              "transaction_date",
-              (endPrevious as Date).toISOString().split("T")[0]
-            );
-        if (prevTotalError) throw prevTotalError;
-        const sumPrevTotal =
-          prevReceipts?.reduce((sum, r) => sum + (r.total || 0), 0) ?? 0;
-        setPreviousTotalSpend(sumPrevTotal);
-
-        // Previous Avg Spend
-        const { data: prevReceiptsForAvg, error: prevAvgError } =
-          await supabase
-            .from("user_receipts")
-            .select("total", { count: "exact" })
-            .gte(
-              "transaction_date",
-              (startPrevious as Date).toISOString().split("T")[0]
-            )
-            .lt(
-              "transaction_date",
-              (endPrevious as Date).toISOString().split("T")[0]
-            );
-        if (prevAvgError) throw prevAvgError;
-        if ((prevReceiptsForAvg ?? []).length === 0) {
-          setPreviousAvgSpend(0);
-        } else {
-          const sumPrev = (prevReceiptsForAvg ?? []).reduce(
-            (sum, r) => sum + (r.total || 0),
-            0
-          );
-          setPreviousAvgSpend(
-            parseFloat((sumPrev / prevReceiptsForAvg.length).toFixed(2))
-          );
-        }
-
-        // Previous Venues Visited
-        const { data: prevVenuesData, error: prevVenuesError } =
-          await supabase
-            .from("user_receipts")
-            .select("merchant_name")
-            .gte(
-              "transaction_date",
-              (startPrevious as Date).toISOString().split("T")[0]
-            )
-            .lt(
-              "transaction_date",
-              (endPrevious as Date).toISOString().split("T")[0]
-            );
-        if (prevVenuesError) throw prevVenuesError;
-        const uniquePrev = new Set(
-          (prevVenuesData ?? []).map((r) =>
-            r.merchant_name?.trim().toLowerCase()
-          )
-        );
-        setPreviousVenuesVisited(uniquePrev.size);
-
-        // Previous Avg Items/Visit
-        const { data: prevReceiptIds, error: prevReceiptIdsError } =
-          await supabase
-            .from("user_receipts")
-            .select("id")
-            .gte(
-              "transaction_date",
-              (startPrevious as Date).toISOString().split("T")[0]
-            )
-            .lt(
-              "transaction_date",
-              (endPrevious as Date).toISOString().split("T")[0]
-            );
-        if (prevReceiptIdsError) throw prevReceiptIdsError;
-        const prevIds = (prevReceiptIds ?? []).map((r) => r.id);
-        if (prevIds.length === 0) {
-          setPreviousAvgItems(0);
-        } else {
-          const {
-            count: prevItemCount,
-            error: prevItemCountError,
-          } = await supabase
-            .from("user_receipt_items")
-            .select("id", { head: true, count: "exact" })
-            .in("receipt_id", prevIds);
-          if (prevItemCountError || prevItemCount === null)
-            throw prevItemCountError;
-          setPreviousAvgItems(
-            parseFloat((prevItemCount / prevIds.length).toFixed(2))
-          );
-        }
-      } catch (err) {
-        console.error("Error fetching previous‐period metrics:", err);
-        setPreviousTotalSpend(0);
-        setPreviousAvgSpend(0);
-        setPreviousVenuesVisited(0);
-        setPreviousAvgItems(0);
-      }
+    } catch (error) {
+      console.error("❌ Error fetching metrics:", error);
+    } finally {
+      setMetricsLoading(false);
     }
   }
 
-  // 6) Fetch chart buckets (hourly or daily depending on timeframe)
   useEffect(() => {
-    loadSpendBuckets();
-  }, [timeframe]);
+    if (venueHash) loadSpendBuckets();
+  }, [timeframe, venueHash]);
 
   const loadSpendBuckets = async () => {
     setSpendLoading(true);
-    try {
-      const { data, error } = await getSpendBuckets(timeframe);
-      if (error) {
-        console.error("Error loading spend buckets:", error);
-        setSpendData([]);
-      } else {
-        //console.log("✅ spendData shape check", data.map((d) => ({ label: d.label, total: d.total })));
-
-        setSpendData(data.reverse());
-      }
-    } catch (e) {
-      console.error("Unexpected error loading spend data:", e);
+    const { data, error } = await getSpendBuckets(timeframe);
+    if (error) {
+      console.error(error);
       setSpendData([]);
-    } finally {
-      setSpendLoading(false);
+    } else {
+      setSpendData(data.reverse());
     }
+    setSpendLoading(false);
   };
 
   useEffect(() => {
-    getUniqueVisitsByWeekday(timeframe)
-      .then(setDailyVisits)
-      .catch((err) => {
-        console.error("Failed to fetch daily visits:", err);
-        setDailyVisits([]);
-      });
+    getUniqueVisitsByWeekday(timeframe).then(setDailyVisits).catch(console.error);
   }, [timeframe]);
 
-  useFocusEffect(
-    useCallback(() => {
-      // This runs every time the tab/screen is focused
-      
-      fetchCurrentAndPreviousMetrics();
-      loadSpendBuckets();
-      getUniqueVisitsByWeekday();
-    }, [timeframe])
-  );
+  useFocusEffect(useCallback(() => {
+    if (!venueHash) return;
+    fetchCurrentAndPreviousMetrics();
+    loadSpendBuckets();
+    getUniqueVisitsByWeekday(timeframe);
+  }, [timeframe, venueHash]));
 
   useEffect(() => {
     hasHourlyTabChild1Animated.current = true;
   }, []);
 
-  // 7) Compare “current” vs “previous” to decide arrow directions
-  const totalUp = (currentTotalSpend ?? 0) > (previousTotalSpend ?? 0);
-  const avgSpendUp = (currentAvgSpend ?? 0) > (previousAvgSpend ?? 0);
-  const venuesUp = (currentVenuesVisited ?? 0) > (previousVenuesVisited ?? 0);
-  const avgItemsUp = (currentAvgItems ?? 0) > (previousAvgItems ?? 0);
+  useEffect(() => {
+    hasAnimatedRef.current = true;
+  }, []);
 
   return (
-
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
+        {/* First Row: Total Spend & Avg Spend */}
         <Animated.View
-          entering={
-            hasHourlyTabChild1Animated.current
-              ? undefined
-              : FadeInDown.delay(0 * 100).springify().damping(12)
-          }
-        >
+          entering={ !hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined }>
           <HStack space="md">
-            {/* Total Spend Card */}
-            {currentTotalSpend === null ? (
-              <ShimmerCard />
+            {metricsLoading ? (
+              <>
+                <ShimmerCard />
+                <ShimmerCard />
+              </>
             ) : (
-              <HourlyCard
-                icon={DollarSign}
-                text="Total Spend"
-                currentUpdate={
-                  currentTotalSpend !== null
-                    ? `$${currentTotalSpend.toFixed(2)}`
-                    : "--"
-                }
-                lastUpdate={formatTimeframeLabel(timeframe)}
-                arrowDownIcon={!totalUp}
-                arrowUpIcon={totalUp}
-              />
-            )}
-
-            {/* Avg Spend Card */}
-            {currentAvgSpend === null ? (
-              <ShimmerCard />
-            ) : (
-              <HourlyCard
-                icon={DollarSign}
-                text="Avg Spend"
-                currentUpdate={
-                  currentAvgSpend !== null
-                    ? `$${currentAvgSpend.toFixed(2)}`
-                    : "--"
-                }
-                lastUpdate={formatTimeframeLabel(timeframe)}
-                arrowDownIcon={!avgSpendUp}
-                arrowUpIcon={avgSpendUp}
-              />
+              <>
+                <HourlyCard icon={DollarSign} text="Total Spend" currentUpdate={`$${currentTotalSpend?.toFixed(2) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(totalSpendChange ?? 0) > 0} arrowDownIcon={(totalSpendChange ?? 0) < 0} />
+                <HourlyCard icon={DollarSign} text="Avg Spend" currentUpdate={`$${currentAvgSpend?.toFixed(2) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(avgSpendChange ?? 0) > 0} arrowDownIcon={(avgSpendChange ?? 0) < 0} />
+              </>
             )}
           </HStack>
         </Animated.View>
 
+        {/* Second Row: Total Cust & Items/Cust */}
         <Animated.View
           entering={
-            hasHourlyTabChild1Animated.current
-              ? undefined
-              : FadeInDown.delay(1 * 100).springify().damping(12)
+            !hasAnimatedRef.current
+              ? FadeInDown.delay(100).springify().damping(12)
+              : undefined
           }
         >
           <HStack space="md">
-            {/* Venues Visited Card */}
-            {currentVenuesVisited === null ? (
-              <ShimmerCard />
+            {metricsLoading ? (
+              <>
+                <ShimmerCard />
+                <ShimmerCard />
+              </>
             ) : (
-              <HourlyCard
-                icon={StoreIcon}
-                text="Venues Visited"
-                currentUpdate={
-                  currentVenuesVisited !== null
-                    ? `${currentVenuesVisited}`
-                    : "--"
-                }
-                lastUpdate={formatTimeframeLabel(timeframe)}
-                arrowDownIcon={!venuesUp}
-                arrowUpIcon={venuesUp}
-              />
-            )}
-
-            {/* Avg Items/Visit Card */}
-            {currentAvgItems === null ? (
-              <ShimmerCard />
-            ) : (
-              <HourlyCard
-                icon={PackageIcon}
-                text="Avg Items/Visit"
-                currentUpdate={
-                  currentAvgItems !== null
-                    ? `${currentAvgItems.toFixed(1)}`
-                    : "--"
-                }
-                lastUpdate={formatTimeframeLabel(timeframe)}
-                arrowDownIcon={!avgItemsUp}
-                arrowUpIcon={avgItemsUp}
-              />
+              <>
+                <HourlyCard icon={StoreIcon} text="Total Cust" currentUpdate={`${currentVenuesVisited ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(visitorsChange ?? 0) > 0} arrowDownIcon={(visitorsChange ?? 0) < 0} />
+                <HourlyCard icon={PackageIcon} text="Items/Cust" currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(itemsPerVisitChange ?? 0) > 0} arrowDownIcon={(itemsPerVisitChange ?? 0) < 0} />
+              </>
             )}
           </HStack>
         </Animated.View>
       </AnimatedVStack>
 
-      {/* Spend Card */}
+      {/* Spend Chart */}
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
         {spendLoading ? (
-          <Text className="text-typography-400 text-center my-4">
-            Loading chart…
-          </Text>
+          <Text className="text-typography-400 text-center my-4">Loading chart…</Text>
+        ) : spendData.length === 0 ? (
+          <Text className="text-typography-400 text-center my-4">No data available</Text>
         ) : (
           <Chart
             chartRef={childRefs[0].ref}
@@ -435,30 +230,23 @@ const OwnerHome = () => {
         )}
       </VStack>
 
-      {/* Daily Visits Card */}
+      {/* Daily Visits */}
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
-        {spendLoading ? (
-          <Text className="text-typography-400 text-center my-4">
-            Loading chart…
-          </Text>
-        ) : (
-          <VisitBarCard data={dailyVisits.map(d => ({ day: d.day, count: d.visitCount }))} />
-        )}
+        <VisitBarCard
+          data={dailyVisits.map((d) => ({ day: d.day, count: d.visitCount }))}
+        />
       </VStack>
-
     </VStack>
   );
+
 };
 
 export default OwnerHome;
 
 function formatTimeframeLabel(timeframe: Timeframe): string {
   switch (timeframe) {
-    case "all":
-      return "All Time";
-    case "7days":
-      return "Prev 7 Days";
-    case "30days":
-      return "Prev 30 Days";
+    case "all": return "All Time";
+    case "7days": return "Prev 7 Days";
+    case "30days": return "Prev 30 Days";
   }
 }
