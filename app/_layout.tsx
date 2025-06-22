@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import React, { useContext } from "react";
+import React, { useContext, useRef } from "react";
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
@@ -14,6 +14,7 @@ import { ThemeProvider, ThemeContext, ThemeContextType } from "@/contexts/theme-
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserContext, UserProvider } from "@/contexts/userContext";
+import { LocationTracker } from "@/components/locationTracker";
 
 const LayoutInner = () => {
   const { colorMode } = useContext(ThemeContext) as ThemeContextType;
@@ -33,6 +34,7 @@ const LayoutInner = () => {
     <GluestackUIProvider mode={colorMode}>
       <StatusBar translucent />
       <Slot />
+      <LocationTracker />
     </GluestackUIProvider>
   );
 };

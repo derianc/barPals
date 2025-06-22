@@ -134,7 +134,7 @@ export async function getProfile(): Promise<{ data: UserProfileData | null; erro
   } = await supabase.auth.getSession();
 
   if (sessionError || !session?.user?.id) {
-    console.error("❌ No active session:", sessionError?.message);
+    // console.error("❌ No active session:", sessionError?.message);
     return null;
   }
 

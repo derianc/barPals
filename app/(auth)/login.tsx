@@ -20,39 +20,35 @@ export default function LoginPage() {
   const { setUser } = useUser();
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password.");
-      return;
-    }
+  if (!email || !password) {
+    Alert.alert("Error", "Please enter both email and password.");
+    return;
+  }
 
-    setLoading(true);
-    const { authData, error } = await login(email, password);
-    setLoading(false);
+  setLoading(true);
+  const { authData, error } = await login(email, password);
+  setLoading(false);
 
-    if (error) {
-      Alert.alert("Sign-in Error", error.message);
-      return;
-    }
+  if (error) {
+    Alert.alert("Sign-in Error", error.message);
+    return;
+  }
 
-    // 🔁 Load and apply user profile into context
-    const profileResult = await getProfile();
-    if (!profileResult || profileResult.error || !profileResult.data) {
-      Alert.alert("Error", "Failed to load user profile.");
-      return;
-    }
+  const profileResult = await getProfile();
+  if (!profileResult || profileResult.error || !profileResult.data) {
+    Alert.alert("Error", "Failed to load user profile.");
+    return;
+  }
 
-    // update global context
-    setUser(profileResult.data);
+  setUser(profileResult.data);
+  await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
 
-    // update local storage
-    await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
-
-    if (profileResult.data.role === "owner") {
-      router.replace("/(tabs)/(ownerHome)");
-    } else {
-      router.replace("/(tabs)/(userHome)");
-    }
-  };
+  if (profileResult.data.role === "owner") {
+    router.replace("/(tabs)/(ownerHome)");
+  } else {
+    router.replace("/(tabs)/(userHome)");
+  }
+};
 
   return (
     <LinearGradient

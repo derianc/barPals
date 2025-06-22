@@ -9,7 +9,9 @@
       "tailwind.config": [
         "./tailwind.config.js"
       ]
-    }
+    },
+    "types": ["react", "react-native"], // ✅ No "node" here
+    "lib": ["dom", "esnext"]
   },
   "include": [
     "**/*.ts",
