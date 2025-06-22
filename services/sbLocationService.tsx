@@ -1,10 +1,10 @@
 import { supabase } from "@/supabase";
 import * as Location from "expo-location";
 
-export async function saveUserLocation(userId: string) {
+export async function saveUserLocation(userId: string, location: Location.LocationObject) {
   try {
     // ⏳ Prevent saving if last entry was within 30 minutes
-    const thirtyMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const thirtyMinsAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
 
     const { data: recent, error: checkError } = await supabase
       .from("user_location")
@@ -30,7 +30,7 @@ export async function saveUserLocation(userId: string) {
       return;
     }
 
-    const loc = await Location.getCurrentPositionAsync({});
+    const loc = location;
     const geo = await Location.reverseGeocodeAsync({
       latitude: loc.coords.latitude,
       longitude: loc.coords.longitude,

@@ -1,54 +1,70 @@
-import { useEffect, useRef } from "react";
-import { AppState, AppStateStatus } from "react-native";
-import { getLoggedInUser } from "@/services/sbUserService";
+import { useEffect, useContext } from "react";
+import * as Location from "expo-location";
+import { initBackgroundFetch } from "./backgroundPolling";
 import { saveUserLocation } from "@/services/sbLocationService";
-
-
-function debounce<T extends (...args: any[]) => void>(func: T, delay: number) {
-  let timeoutId: ReturnType<typeof setTimeout> | null;
-  return (...args: Parameters<T>) => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func(...args), delay);
-  };
-}
+import { UserContext } from "@/contexts/userContext";
+import BackgroundFetch from "react-native-background-fetch"; // ✅ add at the top
 
 export function LocationTracker() {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const appState = useRef<AppStateStatus>(AppState.currentState);
-
-  const debouncedSaveLocation = useRef(
-    debounce(async (userId: string) => {
-      await saveUserLocation(userId);
-    }, 30)
-  ).current;
+  const { user, rehydrated } = useContext(UserContext);
 
   useEffect(() => {
-    const startLocationUpdates = async () => {
-      const user = await getLoggedInUser();
-      if (user?.id) {
-        debouncedSaveLocation(user.id);
+    if (!rehydrated || !user?.id) {
+      console.log("⏳ Waiting for user to be rehydrated before starting tracking...");
+      return;
+    }
+
+    let foregroundSubscription: Location.LocationSubscription | null = null;
+
+    const startTracking = async () => {
+      try {
+        console.log("🚀 Starting background location tracking...");
+        await initBackgroundFetch();
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          console.warn("🚫 Foreground location permission not granted");
+          return;
+        }
+
+        foregroundSubscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 1 * 60 * 1000,
+            distanceInterval: 50,
+          },
+          async (location) => {
+            console.log("📡 Foreground location:", location.coords);
+            await saveUserLocation(user.id, location);
+          }
+        );
+
+        console.log("✅ Foreground tracking initialized");
+
+        // ✅ Manual one-time test trigger
+        BackgroundFetch.scheduleTask({
+          taskId: "com.barpals.manual",
+          delay: 10000, // 10 seconds
+          forceAlarmManager: true,
+          periodic: false,
+          stopOnTerminate: false,
+          enableHeadless: true,
+        });
+      } catch (err) {
+        console.error("❌ Error in startTracking:", err);
       }
     };
 
-    const startTimer = () => {
-      if (intervalRef.current !== null) return;
-      startLocationUpdates();
-      intervalRef.current = setInterval(startLocationUpdates, 15 * 60 * 1000);
-    };
+    startTracking();
 
-    const stopTimer = () => {
-      if (intervalRef.current !== null) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    return () => {
+      if (foregroundSubscription) {
+        foregroundSubscription.remove();
+        console.log("🛑 Foreground location tracking stopped");
       }
     };
+  }, [rehydrated, user?.id]);
 
-    startTimer();
-
-    return () => stopTimer();
-  }, []);
-
-  // ✅ Return null to indicate this is a non-visual component
   return null;
 }
 
