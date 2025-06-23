@@ -154,13 +154,14 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   }
 
   function formatDate(dateString: string): string {
-    //console.log("📅 Parsing transactionDate:", dateString);
+    // console.log("📅 Parsing transactionDate:", dateString);
     let parsedDate: string | null = null;
     try {
-      const extracted = dateString.match(/\d{2}\/\d{2}\/\d{4}/)?.[0]; // "05/28/2025"
+      const extracted = dateString.match(/\d{2}\/\d{2}\/\d{2,4}/)?.[0]; // Matches both 2-digit and 4-digit years
       if (extracted) {
-        const date = parse(extracted, "MM/dd/yyyy", new Date());
-        parsedDate = format(date, "MM-dd-yyyy"); // ISO format for Supabase
+        const yearFormat = extracted.split("/")[2].length === 2 ? "yy" : "yyyy";
+        const date = parse(extracted, `MM/dd/${yearFormat}`, new Date());
+        parsedDate = format(date, "MM-dd-yyyy"); // format for Supabase
       }
     } catch (err) {
       console.error("⚠️ Failed to parse transactionDate:", dateString, err);
@@ -182,6 +183,8 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
     const document = receipt.documents[0];
     const fields = document.fields;
+
+    // console.log('tx data', JSON.stringify(document, null, 2))
 
     // Helper to get .content string from a DocumentField
     const getContent = (name: string): string => {

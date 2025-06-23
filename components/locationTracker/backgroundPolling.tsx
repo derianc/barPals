@@ -22,7 +22,6 @@ const onEvent = async () => {
         let location;
         try {
             location = await Location.getCurrentPositionAsync({});
-
         } catch {
             console.warn("⚠️ Live location unavailable — using last known position");
             location = await Location.getLastKnownPositionAsync({});
