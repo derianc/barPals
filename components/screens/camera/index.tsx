@@ -21,7 +21,7 @@ import { uploadReceipt } from "@/services/sbFileService";
 import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbReceiptService";
 import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -154,26 +154,96 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   }
 
   function formatDate(dateString: string): string {
-    // console.log("📅 Parsing transactionDate:", dateString);
-    let parsedDate: string | null = null;
-    try {
-      const extracted = dateString.match(/\d{2}\/\d{2}\/\d{2,4}/)?.[0]; // Matches both 2-digit and 4-digit years
-      if (extracted) {
-        const yearFormat = extracted.split("/")[2].length === 2 ? "yy" : "yyyy";
-        const date = parse(extracted, `MM/dd/${yearFormat}`, new Date());
-        parsedDate = format(date, "MM-dd-yyyy"); // format for Supabase
-      }
-    } catch (err) {
-      console.error("⚠️ Failed to parse transactionDate:", dateString, err);
-    }
-
-    if (!parsedDate) {
-      console.warn("⚠️ Skipping duplicate check: invalid transactionDate");
+    console.log("📅 Parsing transactionDate:", dateString);
+    if (!dateString) {
+      console.warn("⚠️ Empty date string provided");
       return "";
     }
 
-    //console.log("📅 Parsed transactionDate:", parsedDate);
-    return parsedDate || dateString; // Fallback to original if parsing fails
+    const knownFormats = [
+      "MM/dd/yyyy",
+      "MM/dd/yy",
+      "M/d/yy",
+      "M/d/yyyy",
+      "yyyy-MM-dd",
+      "MM-dd-yyyy",
+      "dd-MM-yyyy",
+      "dd MMM yyyy",
+      "dd-MMM-yyyy",
+    ];
+
+    let normalized = dateString.trim();
+
+    // 🛠 Fix 2-digit year edge case (e.g. 6/23/25 → 6/23/2025)
+    const mmddyyMatch = normalized.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+    if (mmddyyMatch) {
+      const [_, m, d, y] = mmddyyMatch;
+      const fullYear = parseInt(y) > 30 ? `19${y}` : `20${y}`; // heuristic
+      normalized = `${m}/${d}/${fullYear}`;
+      console.log("📅 Normalized short year to:", normalized);
+    }
+
+    for (const fmt of knownFormats) {
+      try {
+        const parsed = parse(normalized, fmt, new Date());
+        const isValidDate = isValid(parsed);
+        console.log(`🔍 Tried format '${fmt}' → ${isValidDate ? "✅ Success" : "❌ Invalid"}`, parsed);
+
+        if (isValidDate) {
+          const formatted = format(parsed, "MM-dd-yyyy");
+          console.log(`✅ Parsed using '${fmt}' →`, formatted);
+          return formatted;
+        }
+      } catch (e) {
+        console.error(`💥 Error parsing with '${fmt}':`, e);
+      }
+    }
+
+    console.warn("⚠️ Skipping invalid transactionDate:", dateString);
+    return "";
+  }
+
+  function formatTime(timeString: string): string {
+    console.log("⏰ Parsing timeString:", timeString);
+    if (!timeString) {
+      console.warn("⚠️ Empty time string provided");
+      return "";
+    }
+
+    const cleaned = timeString.trim().toUpperCase().replace(/\s+/g, " ");
+    console.log("🧼 Normalized timeString:", cleaned);
+
+    const knownFormats = [
+      "h:mm:ss a",
+      "h:mm a",
+      "hh:mm:ss a",
+      "hh:mm a",
+      "H:mm:ss",
+      "H:mm",
+      "HHmmss",
+      "hmmssa",
+      "hmm a",
+      "h:mm:ssa",
+    ];
+
+    for (const fmt of knownFormats) {
+      try {
+        const parsed = parse(cleaned, fmt, new Date());
+        const isValidTime = isValid(parsed);
+        console.log(`🔍 Tried format '${fmt}' → ${isValidTime ? "✅ Success" : "❌ Invalid"}`, parsed);
+
+        if (isValidTime) {
+          const formatted = format(parsed, "HH:mm:ss");
+          console.log(`✅ Parsed time → ${formatted}`);
+          return formatted;
+        }
+      } catch (err) {
+        console.error(`💥 Error parsing time with format '${fmt}':`, err);
+      }
+    }
+
+    console.warn("⚠️ Skipping invalid time:", timeString);
+    return "";
   }
 
   function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string): TransactionData {
@@ -200,7 +270,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       merchantName: getContent("MerchantName") || "Unknown",
       merchantAddress: getContent("MerchantAddress") || "Unknown",
       transactionDate: formatDate(getContent("TransactionDate")),
-      transactionTime: getContent("TransactionTime"),
+      transactionTime: formatTime(getContent("TransactionTime")),
       // transactionTime: (() => {
       //   const t = getContent("TransactionTime")?.trim();
       //   if (t && t.length > 0) {
