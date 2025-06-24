@@ -13,9 +13,15 @@ const onEvent = async () => {
             return;
         }
 
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-            console.warn("🚫 Location permission denied");
+        const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
+        if (fgStatus !== "granted") {
+            console.warn("🚫 Foreground location permission denied");
+            return;
+        }
+
+        const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+        if (bgStatus !== "granted") {
+            console.warn("🚫 Background location permission denied");
             return;
         }
 
