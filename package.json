@@ -8,7 +8,10 @@
     "ios": "DARK_MODE=media expo start --ios",
     "web": "DARK_MODE=media expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "local-dev": "npx expo start --tunnel",
+    "build-dev": "EAS_BUILD_PROFILE=development expo prebuild --clean && eas build --profile development --platform android",
+    "build-preview": "EAS_BUILD_PROFILE=preview expo prebuild --clean && eas build --profile preview --platform android"
   },
   "jest": {
     "preset": "jest-expo"
