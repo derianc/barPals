@@ -7,7 +7,7 @@ import { Text } from "@/components/ui/text";
 import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
 import { WeatherTabContext } from "@/contexts/user-home-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { supabase } from "@/supabase";
 import {
   getAverageItemsPerVisit,
@@ -158,16 +158,15 @@ const UserHome = () => {
 
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
-        <Animated.View
-          entering={
-            hasHourlyTabChild1Animated.current
-              ? undefined
-              : FadeInDown.delay(0 * 100).springify().damping(12)
-          }
-        >
-          <HStack space="md">
-            {/* Total Spend Card */}
-            <View style={{ flex: 1 }}>
+
+        <HStack space="md">
+          {/* Total Spend Card */}
+          <View style={{ flex: 1 }}>
+            <Animated.View
+              style={{ flex: 1 }}
+              exiting={FadeOut.duration(300)}
+              entering={FadeIn.duration(300)}
+            >
               {currentTotalSpend === null ? (
                 <ShimmerCard />
               ) : (
@@ -184,10 +183,16 @@ const UserHome = () => {
                   arrowUpIcon={totalUp}
                 />
               )}
-            </View>
+            </Animated.View>
+          </View>
 
-            {/* Avg Spend Card */}
-            <View style={{ flex: 1 }}>
+          {/* Avg Spend Card */}
+          <View style={{ flex: 1 }}>
+            <Animated.View
+              style={{ flex: 1 }}
+              exiting={FadeOut.duration(300)}
+              entering={FadeIn.duration(300)}
+            >
               {currentAvgSpend === null ? (
                 <ShimmerCard />
               ) : (
@@ -204,20 +209,19 @@ const UserHome = () => {
                   arrowUpIcon={avgSpendUp}
                 />
               )}
-            </View>
-          </HStack>
-        </Animated.View>
+            </Animated.View>
+          </View>
+        </HStack>
 
-        <Animated.View
-          entering={
-            hasHourlyTabChild1Animated.current
-              ? undefined
-              : FadeInDown.delay(1 * 100).springify().damping(12)
-          }
-        >
-          <HStack space="md">
-            {/* Venues Visited Card */}
-            <View style={{ flex: 1 }}>
+
+        <HStack space="md">
+          {/* Venues Visited Card */}
+          <View style={{ flex: 1 }}>
+            <Animated.View
+              style={{ flex: 1 }}
+              exiting={FadeOut.duration(300)}
+              entering={FadeIn.duration(300)}
+            >
               {currentVenuesVisited === null ? (
                 <ShimmerCard />
               ) : (
@@ -234,10 +238,16 @@ const UserHome = () => {
                   arrowUpIcon={venuesUp}
                 />
               )}
-            </View>
+            </Animated.View>
+          </View>
 
-            {/* Avg Items/Visit Card */}
-            <View style={{ flex: 1 }}>
+          {/* Avg Items/Visit Card */}
+          <View style={{ flex: 1 }}>
+            <Animated.View
+              style={{ flex: 1 }}
+              exiting={FadeOut.duration(300)}
+              entering={FadeIn.duration(300)}
+            >
               {currentAvgItems === null ? (
                 <ShimmerCard />
               ) : (
@@ -254,9 +264,9 @@ const UserHome = () => {
                   arrowUpIcon={avgItemsUp}
                 />
               )}
-            </View>
-          </HStack>
-        </Animated.View>
+            </Animated.View>
+          </View>
+        </HStack>
       </AnimatedVStack>
 
       {/* Spend Card */}

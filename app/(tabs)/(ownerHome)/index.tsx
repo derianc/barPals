@@ -146,39 +146,81 @@ const OwnerHome = () => {
   return (
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
-        <Animated.View
-          entering={!hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined}>
-          <HStack space="md">
+        <HStack space="md">
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined}
+          >
             {metricsLoading ? (
-              <>
-                <ShimmerCard />
-                <ShimmerCard />
-              </>
+              <ShimmerCard />
             ) : (
-              <>
-                <HourlyCard icon={DollarSign} text="Total Spend" currentUpdate={`$${currentTotalSpend?.toFixed(2) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(totalSpendChange ?? 0) > 0} arrowDownIcon={(totalSpendChange ?? 0) < 0} />
-                <HourlyCard icon={DollarSign} text="Avg Spend" currentUpdate={`$${currentAvgSpend?.toFixed(2) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(avgSpendChange ?? 0) > 0} arrowDownIcon={(avgSpendChange ?? 0) < 0} />
-              </>
+              <HourlyCard
+                icon={DollarSign}
+                text="Total Spend"
+                currentUpdate={`$${currentTotalSpend?.toFixed(2) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(totalSpendChange ?? 0) > 0}
+                arrowDownIcon={(totalSpendChange ?? 0) < 0}
+              />
             )}
-          </HStack>
-        </Animated.View>
+          </Animated.View>
 
-        <Animated.View
-          entering={!hasAnimatedRef.current ? FadeInDown.delay(100).springify().damping(12) : undefined}>
-          <HStack space="md">
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(100).springify().damping(12) : undefined}
+          >
             {metricsLoading ? (
-              <>
-                <ShimmerCard />
-                <ShimmerCard />
-              </>
+              <ShimmerCard />
             ) : (
-              <>
-                <HourlyCard icon={StoreIcon} text="Visitors" currentUpdate={`${currentVisitors ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(visitorsChange ?? 0) > 0} arrowDownIcon={(visitorsChange ?? 0) < 0} />
-                <HourlyCard icon={PackageIcon} text="Items/Cust" currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(itemsChange ?? 0) > 0} arrowDownIcon={(itemsChange ?? 0) < 0} />
-              </>
+              <HourlyCard
+                icon={DollarSign}
+                text="Avg Spend"
+                currentUpdate={`$${currentAvgSpend?.toFixed(2) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(avgSpendChange ?? 0) > 0}
+                arrowDownIcon={(avgSpendChange ?? 0) < 0}
+              />
             )}
-          </HStack>
-        </Animated.View>
+          </Animated.View>
+        </HStack>
+
+        <HStack space="md">
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(200).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={StoreIcon}
+                text="Visitors"
+                currentUpdate={`${currentVisitors ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(visitorsChange ?? 0) > 0}
+                arrowDownIcon={(visitorsChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
+
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(300).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={PackageIcon}
+                text="Items/Cust"
+                currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(itemsChange ?? 0) > 0}
+                arrowDownIcon={(itemsChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
+        </HStack>
       </AnimatedVStack>
 
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
