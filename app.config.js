@@ -1,3 +1,5 @@
+import { runtimeVersion } from "expo-updates";
+
 export default ({ config }) => {
   const profile = process.env.EAS_BUILD_PROFILE;
   const suffix = profile === 'development' ? 'Dev' : profile === 'preview' ? 'Preview' : '';
@@ -35,7 +37,9 @@ export default ({ config }) => {
         'ACCESS_COARSE_LOCATION',
         'ACCESS_BACKGROUND_LOCATION',
         'FOREGROUND_SERVICE'
-      ]
+      ],
+      googleServicesFile: './android/app/google-services.json',
+      useNextNotificationsApi: true,
     },
     web: {
       bundler: 'metro',
@@ -64,6 +68,14 @@ export default ({ config }) => {
       eas: {
         projectId: '3eb1d1ef-354b-4f58-9fa2-4d48436aa58d'
       }
+    },
+    updates: {
+      url: "https://u.expo.dev/3eb1d1ef-354b-4f58-9fa2-4d48436aa58d",
+      fallbackToCacheTimeout: 0,
+      checkAutomatically: "ON_LOAD"
+    },
+    runtimeVersion: {
+      policy: "appVersion"
     }
   };
 };

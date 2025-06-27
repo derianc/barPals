@@ -2,6 +2,8 @@ import { supabase } from "@/supabase"; // adjust path if needed
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AuthError, User } from "@supabase/supabase-js";
 import type { PostgrestError } from "@supabase/supabase-js";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 export interface RegisterResult {
   user?: Pick<User, "id" | "email">;
@@ -45,8 +47,8 @@ export async function login(email: string, password: string) {
   return { authData: data, error };
 }
 
-export async function logout(){
-  const {error} = await supabase.auth.signOut();
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
   await AsyncStorage.multiRemove([STORAGE_KEY, "selectedVenueId"]);
 
   if (error) {
@@ -126,7 +128,6 @@ export async function getLoggedInUserId(): Promise<string | null> {
   return user.id;
 }
 
-
 export async function getProfile(): Promise<{ data: UserProfileData | null; error: PostgrestError | null } | null> {
   const {
     data: { session },
@@ -193,3 +194,49 @@ export async function updateUserProfile(
 
   return { data, error };
 }
+
+export async function registerForPushNotificationsAsync(userId: string) {
+  try {
+    let token;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      console.log("Failed to get push token for push notifications!");
+      return "";
+    }
+
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log("Expo Push Token:", token);
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ device_token: token })
+      .eq("id", userId);
+
+    if (updateError) {
+      console.error("❌ Failed to update device_token:", updateError);
+    } else {
+      console.log("✅ device_token updated successfully");
+    }
+
+  } catch (error: any) {
+    alert(error);
+    return "";
+  }
+};

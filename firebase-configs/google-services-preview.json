@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951598715886",
+    "project_id": "barpals-a2c46",
+    "storage_bucket": "barpals-a2c46.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951598715886:android:3106574ad908fba3a9b4ff",
+        "android_client_info": {
+          "package_name": "com.derianc.parpalspreview"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,7 +8,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { getProfile, login } from "@/services/sbUserService";
+import { getProfile, login, registerForPushNotificationsAsync } from "@/services/sbUserService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/contexts/userContext";
 
@@ -20,35 +20,38 @@ export default function LoginPage() {
   const { setUser } = useUser();
 
   const handleSignIn = async () => {
-  if (!email || !password) {
-    Alert.alert("Error", "Please enter both email and password.");
-    return;
-  }
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter both email and password.");
+      return;
+    }
 
-  setLoading(true);
-  const { authData, error } = await login(email, password);
-  setLoading(false);
+    setLoading(true);
+    const { authData, error } = await login(email, password);
+    setLoading(false);
 
-  if (error) {
-    Alert.alert("Sign-in Error", error.message);
-    return;
-  }
+    if (error) {
+      Alert.alert("Sign-in Error", error.message);
+      return;
+    }
 
-  const profileResult = await getProfile();
-  if (!profileResult || profileResult.error || !profileResult.data) {
-    Alert.alert("Error", "Failed to load user profile.");
-    return;
-  }
+    const profileResult = await getProfile();
+    if (!profileResult || profileResult.error || !profileResult.data) {
+      Alert.alert("Error", "Failed to load user profile.");
+      return;
+    }
 
-  setUser(profileResult.data);
-  await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
+    setUser(profileResult.data);
+    await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
 
-  if (profileResult.data.role === "owner") {
-    router.replace("/(tabs)/(ownerHome)");
-  } else {
-    router.replace("/(tabs)/(userHome)");
-  }
-};
+    // Update device token on login
+    await registerForPushNotificationsAsync(profileResult.data.id);
+
+    if (profileResult.data.role === "owner") {
+      router.replace("/(tabs)/(ownerHome)");
+    } else {
+      router.replace("/(tabs)/(userHome)");
+    }
+  };
 
   return (
     <LinearGradient
