@@ -342,6 +342,9 @@ export async function getVenueVisitsByDay(
   }
 }
 
+
+
+
 export async function getAllReceiptsForVenue(venueHash: string): Promise<{ data: any[]; error: Error | null }> {
   try {
     const { data, error } = await supabase

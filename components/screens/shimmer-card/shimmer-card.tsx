@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 
 const ShimmerCard = () => (
-  <View style={styles.card}>
+  <View style={[styles.card, { flex: 1 }]}>  
     <ShimmerPlaceholder
       LinearGradient={LinearGradient}
       style={styles.iconShimmer}
@@ -28,9 +28,10 @@ export default ShimmerCard;
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#1e1e1e20",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    flex: 1,
+    height: 130,       // <-- Set fixed height to match HourlyCard
+    width: "100%",     // <-- Ensure consistent layout width
     margin: 4,
   },
   iconShimmer: {
@@ -46,3 +47,4 @@ const styles = StyleSheet.create({
     width: "80%",
   },
 });
+

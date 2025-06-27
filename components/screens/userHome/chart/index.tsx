@@ -12,7 +12,7 @@ import { ThemeContext } from "@/contexts/theme-context";
 import { WeatherTabContext } from "@/contexts/user-home-context";
 
 // Re‐import SpendBucket
-import type { SpendBucket } from "@/services/sbReceiptService";
+import type { SpendBucket } from "@/services/sbCoreReceiptService";
 
 interface ChartProps {
   chartRef: React.Ref<any>;

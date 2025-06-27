@@ -10,7 +10,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { getLoggedInUser } from "@/services/sbUserService";
-import { getConsecutiveReceiptDays } from "@/services/sbReceiptService";
+import { getConsecutiveReceiptDays } from "@/services/sbCoreReceiptService";
 
 
 interface UserProfileData {

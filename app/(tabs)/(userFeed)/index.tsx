@@ -4,7 +4,7 @@ import { VStack } from "@/components/ui/vstack";
 import { ScrollView } from "@/components/ui/scroll-view";
 import Animated, { FadeInUp, FadeOutDown, } from "react-native-reanimated";
 import UserFeedHeader from "@/components/shared/custom-header/userFeedHeader";
-import { archiveReceiptById, deleteReceiptById, getAllReceiptsForUser } from "@/services/sbReceiptService";
+import { archiveReceiptById, deleteReceiptById, getAllReceiptsForUser } from "@/services/sbCoreReceiptService";
 import ReceiptCard from "@/components/screens/userFeed/receipt-card/receiptCard";
 import { getReceiptItems } from "@/services/sbReceiptItemsService";
 import { Text as AppText } from "@/components/ui/text";

@@ -1,5 +1,3 @@
-// index.tsx
-
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
@@ -11,13 +9,8 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { DollarSign, StoreIcon, PackageIcon } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
-import ShimmerCard from "@/components/screens/userHome/shimmer-card/shimmer-card";
+import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
 import { getSelectedVenueHash } from "@/services/sbVenueService";
-import {
-  getSpendBuckets,
-  getUniqueVisitsByWeekday,
-  SpendBucket,
-} from "@/services/sbReceiptService";
 import {
   getCurrentAndPreviousTotalVenueSpend,
   getAverageSpendPerCustomer,
@@ -25,40 +18,55 @@ import {
   getAverageItemsPerCustomer,
   getVenueSpendTrend,
   getVenueVisitsByDay,
-} from "@/services/sbOwnerReceiptService";
+  SpendBucket
+} from "@/services/sbCoreReceiptService";
 
 type Timeframe = "7days" | "30days" | "all";
+
+function getDateRange(timeframe: Timeframe): { start: Date | null; end: Date | null } {
+  const now = new Date();
+  let start: Date | null = null;
+  let end: Date | null = now;
+
+  if (timeframe === "7days") {
+    start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 6);
+  } else if (timeframe === "30days") {
+    start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 29);
+  }
+
+  return { start, end };
+}
 
 const OwnerHome = () => {
   const { childRefs, hasHourlyTabChild1Animated }: any = useContext(WeatherTabContext);
   const AnimatedVStack = Animated.createAnimatedComponent(VStack);
   const { selectedTabIndex } = useContext(WeatherTabContext);
   const hasAnimatedRef = useRef(false);
-  const [metricsLoading, setMetricsLoading] = useState(true);
 
   const timeframe: Timeframe =
     selectedTabIndex === 0 ? "7days" :
     selectedTabIndex === 1 ? "30days" : "all";
 
+  const [venueHash, setVenueHash] = useState<string | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [spendLoading, setSpendLoading] = useState(true);
+
   const [currentTotalSpend, setCurrentTotalSpend] = useState<number | null>(null);
   const [currentAvgSpend, setCurrentAvgSpend] = useState<number | null>(null);
-  const [currentVenuesVisited, setCurrentVenuesVisited] = useState<number | null>(null);
+  const [currentVisitors, setCurrentVisitors] = useState<number | null>(null);
   const [currentAvgItems, setCurrentAvgItems] = useState<number | null>(null);
 
   const [totalSpendChange, setTotalSpendChange] = useState<number | null>(null);
   const [avgSpendChange, setAvgSpendChange] = useState<number | null>(null);
   const [visitorsChange, setVisitorsChange] = useState<number | null>(null);
-  const [itemsPerVisitChange, setItemsPerVisitChange] = useState<number | null>(null);
-
-  const [previousTotalSpend, setPreviousTotalSpend] = useState<number | null>(null);
-  const [previousAvgSpend, setPreviousAvgSpend] = useState<number | null>(null);
-  const [previousVenuesVisited, setPreviousVenuesVisited] = useState<number | null>(null);
-  const [previousAvgItems, setPreviousAvgItems] = useState<number | null>(null);
+  const [itemsChange, setItemsChange] = useState<number | null>(null);
 
   const [spendData, setSpendData] = useState<SpendBucket[]>([]);
-  const [spendLoading, setSpendLoading] = useState<boolean>(true);
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
-  const [venueHash, setVenueHash] = useState<string | null>(null);
 
   useEffect(() => {
     getSelectedVenueHash().then(setVenueHash);
@@ -66,101 +74,66 @@ const OwnerHome = () => {
 
   useEffect(() => {
     if (venueHash) {
-      fetchCurrentAndPreviousMetrics();
+      loadOwnerHomeData();
     }
   }, [timeframe, venueHash]);
 
-  async function fetchCurrentAndPreviousMetrics() {
+  useFocusEffect(
+    useCallback(() => {
+      if (venueHash) {
+        loadOwnerHomeData();
+      }
+    }, [timeframe, venueHash])
+  );
+
+  async function loadOwnerHomeData() {
     if (!venueHash) return;
 
+    const { start, end } = getDateRange(timeframe);
+
     setMetricsLoading(true);
-
-    const now = new Date();
-    let startCurrent: Date | null = null;
-    let endCurrent: Date | null = null;
-
-    if (timeframe === "7days") {
-      endCurrent = now;
-      startCurrent = new Date(endCurrent);
-      startCurrent.setHours(0, 0, 0, 0);
-      startCurrent.setDate(startCurrent.getDate() - 6);
-    } else if (timeframe === "30days") {
-      endCurrent = now;
-      startCurrent = new Date(endCurrent);
-      startCurrent.setHours(0, 0, 0, 0);
-      startCurrent.setDate(startCurrent.getDate() - 29);
-    }
+    setSpendLoading(true);
 
     try {
       const [
         totalSpend,
         avgSpend,
-        totalCust,
+        totalVisitors,
         avgItems,
-        trend,
+        spendTrend,
         visitsByDay
       ] = await Promise.all([
-        getCurrentAndPreviousTotalVenueSpend(startCurrent, endCurrent, venueHash),
-        getAverageSpendPerCustomer(startCurrent, endCurrent, venueHash),
-        getUniqueVisitorsToVenue(startCurrent, endCurrent, venueHash),
-        getAverageItemsPerCustomer(startCurrent, endCurrent, venueHash),
-        getVenueSpendTrend(startCurrent, endCurrent, venueHash),
-        getVenueVisitsByDay(startCurrent, endCurrent, venueHash)
+        getCurrentAndPreviousTotalVenueSpend(start, end, venueHash),
+        getAverageSpendPerCustomer(start, end, venueHash),
+        getUniqueVisitorsToVenue(start, end, venueHash),
+        getAverageItemsPerCustomer(start, end, venueHash),
+        getVenueSpendTrend(start, end, venueHash),
+        getVenueVisitsByDay(start, end, venueHash)
       ]);
 
       setCurrentTotalSpend(totalSpend.current);
-      setPreviousTotalSpend(totalSpend.previous);
       setTotalSpendChange(totalSpend.percentChange);
 
       setCurrentAvgSpend(avgSpend.current);
-      setPreviousAvgSpend(avgSpend.previous);
       setAvgSpendChange(avgSpend.percentChange);
 
-      setCurrentVenuesVisited(totalCust.current);
-      setPreviousVenuesVisited(totalCust.previous);
-      setVisitorsChange(totalCust.percentChange);
+      setCurrentVisitors(totalVisitors.current);
+      setVisitorsChange(totalVisitors.percentChange);
 
       setCurrentAvgItems(avgItems.current);
-      setPreviousAvgItems(avgItems.previous);
-      setItemsPerVisitChange(avgItems.percentChange);
+      setItemsChange(avgItems.percentChange);
 
-      setSpendData(trend.data);
-
+      setSpendData(spendTrend.data.reverse());
       setDailyVisits(visitsByDay.data);
-
     } catch (error) {
-      console.error("❌ Error fetching metrics:", error);
+      console.error("❌ Error fetching owner metrics:", error);
+      setSpendData([]);
+      setDailyVisits([]);
     } finally {
       setMetricsLoading(false);
+      setSpendLoading(false);
     }
   }
-
-  useEffect(() => {
-    if (venueHash) loadSpendBuckets();
-  }, [timeframe, venueHash]);
-
-  const loadSpendBuckets = async () => {
-    setSpendLoading(true);
-    const { data, error } = await getSpendBuckets(timeframe);
-    if (error) {
-      console.error(error);
-      setSpendData([]);
-    } else {
-      setSpendData(data.reverse());
-    }
-    setSpendLoading(false);
-  };
-
-  useEffect(() => {
-    getUniqueVisitsByWeekday(timeframe).then(setDailyVisits).catch(console.error);
-  }, [timeframe]);
-
-  useFocusEffect(useCallback(() => {
-    if (!venueHash) return;
-    fetchCurrentAndPreviousMetrics();
-    loadSpendBuckets();
-    getUniqueVisitsByWeekday(timeframe);
-  }, [timeframe, venueHash]));
 
   useEffect(() => {
     hasHourlyTabChild1Animated.current = true;
@@ -173,9 +146,8 @@ const OwnerHome = () => {
   return (
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
-        {/* First Row: Total Spend & Avg Spend */}
         <Animated.View
-          entering={ !hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined }>
+          entering={!hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined}>
           <HStack space="md">
             {metricsLoading ? (
               <>
@@ -191,14 +163,8 @@ const OwnerHome = () => {
           </HStack>
         </Animated.View>
 
-        {/* Second Row: Total Cust & Items/Cust */}
         <Animated.View
-          entering={
-            !hasAnimatedRef.current
-              ? FadeInDown.delay(100).springify().damping(12)
-              : undefined
-          }
-        >
+          entering={!hasAnimatedRef.current ? FadeInDown.delay(100).springify().damping(12) : undefined}>
           <HStack space="md">
             {metricsLoading ? (
               <>
@@ -207,38 +173,33 @@ const OwnerHome = () => {
               </>
             ) : (
               <>
-                <HourlyCard icon={StoreIcon} text="Total Cust" currentUpdate={`${currentVenuesVisited ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(visitorsChange ?? 0) > 0} arrowDownIcon={(visitorsChange ?? 0) < 0} />
-                <HourlyCard icon={PackageIcon} text="Items/Cust" currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(itemsPerVisitChange ?? 0) > 0} arrowDownIcon={(itemsPerVisitChange ?? 0) < 0} />
+                <HourlyCard icon={StoreIcon} text="Visitors" currentUpdate={`${currentVisitors ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(visitorsChange ?? 0) > 0} arrowDownIcon={(visitorsChange ?? 0) < 0} />
+                <HourlyCard icon={PackageIcon} text="Items/Cust" currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`} lastUpdate={formatTimeframeLabel(timeframe)} arrowUpIcon={(itemsChange ?? 0) > 0} arrowDownIcon={(itemsChange ?? 0) < 0} />
               </>
             )}
           </HStack>
         </Animated.View>
       </AnimatedVStack>
 
-      {/* Spend Chart */}
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
         {spendLoading ? (
           <Text className="text-typography-400 text-center my-4">Loading chart…</Text>
         ) : spendData.length === 0 ? (
           <Text className="text-typography-400 text-center my-4">No data available</Text>
         ) : (
-          <Chart
-            chartRef={childRefs[0].ref}
-            data={spendData}
-            timeframe={timeframe}
-          />
+          <Chart chartRef={childRefs?.[0]?.ref} data={spendData} timeframe={timeframe} />
         )}
       </VStack>
 
-      {/* Daily Visits */}
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
-        <VisitBarCard
-          data={dailyVisits.map((d) => ({ day: d.day, count: d.visitCount }))}
-        />
+        {spendLoading || !dailyVisits.length ? (
+          <Text className="text-typography-400 text-center my-4">Loading chart…</Text>
+        ) : (
+          <VisitBarCard data={dailyVisits.map(d => ({ day: d.day, count: d.visitCount }))} />
+        )}
       </VStack>
     </VStack>
   );
-
 };
 
 export default OwnerHome;

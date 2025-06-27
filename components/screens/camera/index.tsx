@@ -18,7 +18,7 @@ import {
 } from "@azure/ai-form-recognizer";
 import { TransactionData, TransactionItem } from "@/data/models/transactionModel";
 import { uploadReceipt } from "@/services/sbFileService";
-import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbReceiptService";
+import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbCoreReceiptService";
 import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
 import { format, parse, isValid } from "date-fns";
