@@ -82,3 +82,5 @@ yarn-error.*
 
 supabase/functions/**/firebase-key.json
 firebase-configs/private-key.json
+supabase/functions/sendPushNotification/supabase.env
+supabase/functions/sendPushNotification/supabase.env
