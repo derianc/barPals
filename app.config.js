@@ -74,8 +74,6 @@ export default ({ config }) => {
       fallbackToCacheTimeout: 0,
       checkAutomatically: "ON_LOAD"
     },
-    runtimeVersion: {
-      policy: "appVersion"
-    }
+    runtimeVersion:  "1.0.0"
   };
 };

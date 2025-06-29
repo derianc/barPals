@@ -1,4 +1,4 @@
-import { supabase } from "@/supabase"; // adjust path if needed
+import { supabase } from "@/supabase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AuthError, User } from "@supabase/supabase-js";
 import type { PostgrestError } from "@supabase/supabase-js";
@@ -15,7 +15,7 @@ export interface UserProfileData {
   id: string;
   email: string;
   deviceToken?: string;
-  username?: string;
+  username?: string | null | undefined;
   full_name?: string;
   avatar_url?: string;
   role: "user" | "owner" | "admin" | string;
@@ -195,7 +195,7 @@ export async function updateUserProfile(
   return { data, error };
 }
 
-export async function registerForPushNotificationsAsync(userId: string) {
+export async function registerForExpoPushNotificationsAsync(userId: string) {
   try {
     let token;
 
@@ -240,3 +240,4 @@ export async function registerForPushNotificationsAsync(userId: string) {
     return "";
   }
 };
+

@@ -160,7 +160,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       return "";
     }
 
-    const knownFormats = [
+    const knownDateFormats = [
       "MM/dd/yyyy",
       "MM/dd/yy",
       "M/d/yy",
@@ -170,6 +170,8 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       "dd-MM-yyyy",
       "dd MMM yyyy",
       "dd-MMM-yyyy",
+      "MMMM d. yyyy",
+      "MMMM d, yyyy",
     ];
 
     let normalized = dateString.trim();
@@ -183,7 +185,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       console.log("📅 Normalized short year to:", normalized);
     }
 
-    for (const fmt of knownFormats) {
+    for (const fmt of knownDateFormats) {
       try {
         const parsed = parse(normalized, fmt, new Date());
         const isValidDate = isValid(parsed);
@@ -213,7 +215,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     const cleaned = timeString.trim().toUpperCase().replace(/\s+/g, " ");
     console.log("🧼 Normalized timeString:", cleaned);
 
-    const knownFormats = [
+    const knownTimeFormats = [
       "h:mm:ss a",
       "h:mm a",
       "hh:mm:ss a",
@@ -224,9 +226,14 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       "hmmssa",
       "hmm a",
       "h:mm:ssa",
+      "MMMM d yyyy",
+      "d MMMM yyyy",
+      "d MMM yyyy",
+      "d-MMMM-yyyy",
+      "d-MMM-yyyy",
     ];
 
-    for (const fmt of knownFormats) {
+    for (const fmt of knownTimeFormats) {
       try {
         const parsed = parse(cleaned, fmt, new Date());
         const isValidTime = isValid(parsed);
@@ -271,17 +278,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       merchantAddress: getContent("MerchantAddress") || "Unknown",
       transactionDate: formatDate(getContent("TransactionDate")),
       transactionTime: formatTime(getContent("TransactionTime")),
-      // transactionTime: (() => {
-      //   const t = getContent("TransactionTime")?.trim();
-      //   if (t && t.length > 0) {
-      //     return t;
-      //   }
-
-      //   // Format current time as "HH:MM:SS"
-      //   const now = new Date();
-      //   const pad = (n: number) => n.toString().padStart(2, "0");
-      //   return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-      // })(),
 
       total: formatPrice(getContent("Total")) || 0,
       createdAt: new Date().toISOString(),

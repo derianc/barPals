@@ -79,3 +79,5 @@ yarn-error.*
 *.tsbuildinfo
 
 # @end expo-cli
+
+supabase/functions/**/firebase-key.json

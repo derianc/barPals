@@ -8,9 +8,10 @@ import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { getProfile, login, registerForPushNotificationsAsync } from "@/services/sbUserService";
+import { getProfile, login } from "@/services/sbUserService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useUser } from "@/contexts/userContext";
+import { registerForFcmPushNotificationsAsync } from "@/services/fcmNotificationService";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,7 +45,8 @@ export default function LoginPage() {
     await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
 
     // Update device token on login
-    await registerForPushNotificationsAsync(profileResult.data.id);
+    // await registerForPushNotificationsAsync(profileResult.data.id);
+    await registerForFcmPushNotificationsAsync(profileResult.data.id);
 
     if (profileResult.data.role === "owner") {
       router.replace("/(tabs)/(ownerHome)");

@@ -1,4 +1,4 @@
-package com.derianc.BarPalsPreview
+package com.derianc.BarPalsDev
 
 import android.app.Application
 import android.content.res.Configuration

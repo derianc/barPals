@@ -8,25 +8,13 @@ import {
   Text} from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
-import { getLoggedInUser } from "@/services/sbUserService";
+import { getLoggedInUser, UserProfileData } from "@/services/sbUserService";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
 import { Camera } from "lucide-react-native";
 import ProfileCard from "@/components/screens/userProfile/profile-card/profileCard";
 import { Icon } from "@/components/ui/icon";
 import { Calendar } from "lucide-react-native";
 
-interface UserProfileData {
-  id: string;
-  email: string;
-  username: string | null;
-  full_name: string | null;
-  allow_notifications: boolean;
-  avatar_url?: string | null;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 const UserProfileDetails = () => {
   const [user, setUser] = useState<UserProfileData | null>(null);
