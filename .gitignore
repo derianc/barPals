@@ -81,3 +81,4 @@ yarn-error.*
 # @end expo-cli
 
 supabase/functions/**/firebase-key.json
+firebase-configs/private-key.json

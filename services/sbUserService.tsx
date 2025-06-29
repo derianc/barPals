@@ -74,27 +74,35 @@ export async function getLoggedInUser(): Promise<UserProfileData | null> {
   // 2. Fallback: Check Supabase session + fetch from DB
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
 
-  if (session?.user?.id) {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
+  if (sessionError) {
+    console.warn("⚠️ Failed to get session:", sessionError.message);
+  }
 
-    if (error) {
-      console.warn("⚠️ Failed to load profile from Supabase:", error.message);
-    } else if (profile) {
-      // Optional: Cache in localStorage
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-      } catch (e) {
-        console.warn("⚠️ Failed to save profile to local storage:", e);
-      }
+  if (!session?.user?.id) {
+    console.warn("⚠️ Supabase session missing or expired.");
+    return null;
+  }
 
-      return profile as UserProfileData;
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", session.user.id)
+    .single();
+
+  if (error) {
+    console.warn("⚠️ Failed to load profile from Supabase:", error.message);
+  } else if (profile) {
+    // Optional: Cache in localStorage
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    } catch (e) {
+      console.warn("⚠️ Failed to save profile to local storage:", e);
     }
+
+    return profile as UserProfileData;
   }
 
   return null;
