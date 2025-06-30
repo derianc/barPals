@@ -4,6 +4,7 @@ import type { AuthError, User } from "@supabase/supabase-js";
 import type { PostgrestError } from "@supabase/supabase-js";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { router } from "expo-router";
 
 export interface RegisterResult {
   user?: Pick<User, "id" | "email">;
@@ -55,6 +56,9 @@ export async function logout() {
     console.error("Logout failed:", error.message);
     return { error };
   }
+
+  // Reset app navigation
+  router.replace("/login");
 
   return { error: null };
 }

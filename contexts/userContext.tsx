@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getProfile, UserProfileData } from "@/services/sbUserService";
 import { supabase } from "@/supabase";
 import { Session } from "@supabase/supabase-js";
+import deepEqual from "fast-deep-equal";
 
 interface UserContextType {
   user: UserProfileData | null;
@@ -20,41 +21,62 @@ export const UserContext = createContext<UserContextType>({
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<UserProfileData | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [rehydrated, setRehydrated] = useState(false);
+  const lastSessionRef = useRef<Session | null | undefined>(undefined);
 
-  // Step 1: Restore Supabase session and subscribe to future changes
+  // Step 1: Initial session load + listener
   useEffect(() => {
-    const init = async () => {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+    let mounted = true;
 
-      if (session) {
-        console.log("✅ Supabase session is already valid.");
-        setSession(session);
-      } else {
-        console.warn("⚠️ Supabase session missing. Skipping refresh.");
+    const loadInitialSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (mounted) {
+        setSession(data.session ?? null);
       }
-
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-        setSession(newSession);
-      });
-
-      return () => {
-        listener.subscription.unsubscribe();
-      };
     };
 
-    init();
-  }, []);
+    loadInitialSession();
 
-  // Step 2: Load user profile only after session is ready
-  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log("🌀 Auth state changed:", event, "→", newSession);
+      setSession(prev => {
+        if (deepEqual(prev, newSession)) {
+          console.log("⏸ Session unchanged — skipping update.");
+          return prev;
+        }
+        return newSession ?? null;
+      });
+    });
+
+    return () => {
+      mounted = false;
+      authListener?.subscription.unsubscribe();
+    };
+  }, []); 
+
+  // Step 2: Restore user once per unique session
+  useEffect(() => { 
     const restoreUser = async () => {
-      if (!session) {
-        console.warn("⏳ Waiting for Supabase session before loading user.");
+      if (session === undefined) return;
+
+      // Debounce using storage
+      const flagKey = "user_restore_ran";
+      const lastSessionId = session?.user?.id ?? "null";
+
+      const lastRestore = await AsyncStorage.getItem(flagKey);
+      if (lastRestore === lastSessionId) {
+        console.log("🔁 Skipping restoreUser — already ran for this session.");
+        return;
+      }
+
+      await AsyncStorage.setItem(flagKey, lastSessionId);
+
+      if (session === null) {
+        console.log("🧹 No session – clearing user.");
+        setUser(null);
+        await AsyncStorage.removeItem("loggedInUser");
+        setRehydrated(true);
         return;
       }
 
@@ -71,25 +93,33 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
           if (profileResult?.data) {
             setUser(profileResult.data);
             await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
-            console.log("🧠 Loaded profile from Supabase session:", profileResult.data);
+            console.log("🧠 Loaded user from Supabase:", profileResult.data);
           } else if (profileResult?.error) {
-            console.error("❌ Failed to fetch profile from Supabase:", profileResult.error.message);
+            console.error("❌ Failed to load profile:", profileResult.error.message);
           } else {
-            console.warn("⚠️ getProfile() returned null");
+            console.warn("⚠️ getProfile returned null.");
           }
         }
       } catch (err) {
-        console.error("❌ Failed to restore user:", err);
+        console.error("❌ Error restoring user:", err);
       } finally {
         setRehydrated(true);
       }
     };
 
     restoreUser();
-  }, [session]); // ✅ Only runs after session is restored
+  }, [session]);
+
 
   return (
-    <UserContext.Provider value={{ user, setUser, session, rehydrated }}>
+    <UserContext.Provider
+      value={{
+        user,
+        setUser,
+        session: session ?? null,
+        rehydrated,
+      }}
+    >
       {children}
     </UserContext.Provider>
   );

@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Slot, useRouter } from "expo-router";
+import { Slot, useRouter, usePathname } from "expo-router";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -20,9 +20,12 @@ import { NotificationHandler } from "@/components/notifications/NotificationHand
 import * as Notifications from 'expo-notifications';
 
 const LayoutInner = () => {
+  const publicRoutes = ["/login", "/signup", "/"]; // add others if needed
   const { colorMode } = useContext(ThemeContext) as ThemeContextType;
   const { rehydrated } = useContext(UserContext);
   const router = useRouter();
+  const pathname = usePathname();
+
   const [fontsLoaded] = useFonts({
     "dm-sans-regular": DMSans_400Regular,
     "dm-sans-medium": DMSans_500Medium,
@@ -43,16 +46,21 @@ const LayoutInner = () => {
 
   useEffect(() => {
     const checkSession = async () => {
+      const currentPath = pathname.split("?")[0];
+      const isPublicRoute = publicRoutes.includes(currentPath);
+
       const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login"); // 👈 redirect to login route
-      } else {
-        setSessionChecked(true);
+
+      if (!data.session && !isPublicRoute) {
+        console.log("🔐 No session & protected route → redirecting to /login");
+        router.replace("/login");
       }
+
+      setSessionChecked(true);
     };
 
     checkSession();
-  }, []);
+  }, [pathname]);
 
   if (!fontsLoaded || !rehydrated || !sessionChecked) {
     return null;
