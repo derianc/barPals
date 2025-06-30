@@ -14,7 +14,6 @@ import ProfileCard from "@/components/screens/userProfile/profile-card/profileCa
 import { Icon } from "@/components/ui/icon";
 import { Calendar } from "lucide-react-native";
 import { useUser } from "@/contexts/userContext";
-import { UserProfileData } from "@/types/UserProfileData";
 
 
 const UserProfileDetails = () => {

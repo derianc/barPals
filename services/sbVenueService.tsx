@@ -1,5 +1,4 @@
 import { supabase } from "@/supabase";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface Venue {
   id: string;
@@ -74,4 +73,24 @@ export async function getSelectedVenueHash({
   }
 }
 
+export async function getVenueForUser(profileId: string) {
+  const { data: venueLink, error: linkError } = await supabase
+    .from("venue_users")
+    .select("venue_id")
+    .eq("profile_id", profileId)
+    .single();
 
+  if (linkError || !venueLink) throw new Error("Failed to get venue_id");
+  return venueLink.venue_id;
+}
+
+export async function getVenueDetails(venueId: string) {
+  const { data, error } = await supabase
+    .from("venues")
+    .select("*")
+    .eq("id", venueId)
+    .single();
+
+  if (error || !data) throw new Error("Failed to get venue details");
+  return data;
+}

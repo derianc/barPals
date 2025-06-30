@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Dimensions, ActivityIndicator, Button } from 'react-native';
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useUser } from '@/contexts/userContext';
-import { supabase } from '@/supabase';
 import { useRouter } from 'expo-router';
+import { getVenueForUser, getVenueDetails } from "@/services/sbVenueService";
 
-const RADIUS_METERS = 50000;
+import {
+  subscribeToLocationInserts,
+  unsubscribeFromLocationUpdates,
+  getNearbyUserLocations,
+  simulateUserMovementNearVenue,
+  deleteTestLocations
+} from "@/services/sbLocationService";
+
+const RADIUS_METERS = 2000;
 
 const OwnerMapScreen = () => {
   const { user, rehydrated } = useUser();
@@ -14,103 +22,47 @@ const OwnerMapScreen = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const haversine = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const toRad = (x: number) => (x * Math.PI) / 180;
-    const R = 6371000;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const isWithinRadius = (lat: number, lng: number) => {
-    if (!venue) return false;
-    const dist = haversine(venue.latitude, venue.longitude, lat, lng);
-    return dist <= RADIUS_METERS;
-  };
-
   const fetchVenueAndLocations = async () => {
-    console.log('🔄 fetchVenueAndLocations called');
+    console.log("🔄 fetchVenueAndLocations called");
     setLoading(true);
 
     if (!user) {
-      console.warn('⚠️ No user found in context');
+      console.warn("⚠️ No user found in context");
       setLoading(false);
       return;
     }
 
-    console.log(`👤 Current user ID: ${user.id}`);
+    try {
+      const venueId = await getVenueForUser(user.id);
+      console.log(`🏢 Found venue_id: ${venueId}`);
 
-    // Step 1: Get venue_id from venue_users
-    const { data: venueLink, error: linkError } = await supabase
-      .from('venue_users')
-      .select('venue_id')
-      .eq('profile_id', user.id)
-      .single();
+      const venueData = await getVenueDetails(venueId);
+      console.log("📍 Venue loaded:", venueData);
+      setVenue(venueData);
 
-    if (linkError || !venueLink) {
-      console.error('❌ Venue lookup failed:', linkError);
-      setLoading(false);
-      return;
-    }
+      const locations = await getNearbyUserLocations(venueData.latitude, venueData.longitude, RADIUS_METERS, 5);
+      console.log(`🧭 Found ${locations.length} nearby user locations`);
+      setUserLocations(locations);
 
-    console.log(`🏢 Found venue_id: ${venueLink.venue_id}`);
-
-    // Step 2: Load venue details
-    const { data: venueData, error: venueError } = await supabase
-      .from('venues')
-      .select('*')
-      .eq('id', venueLink.venue_id)
-      .single();
-
-    if (venueError || !venueData) {
-      console.error('❌ Venue fetch failed:', venueError);
-      setLoading(false);
-      return;
-    }
-
-    console.log('📍 Venue loaded:', venueData);
-    setVenue(venueData);
-
-    // Step 3: Load user locations
-    const { data: locations, error: locationError } = await supabase
-      .from('user_location')
-      .select('id, user_id, latitude, longitude, recorded_at');
-
-    if (locationError) {
-      console.error('❌ Location fetch failed:', locationError);
-    } else {
-      const nearby = locations.filter(loc => isWithinRadius(loc.latitude, loc.longitude));
-      console.log(`🧭 Found ${nearby.length} nearby user locations`);
-      setUserLocations(nearby);
+    } catch (err) {
+      console.error("❌ Failed during fetchVenueAndLocations:", err);
     }
 
     setLoading(false);
   };
 
+  const refreshNearbyUsers = async () => {
+    if (!venue) return;
+    const data = await getNearbyUserLocations(venue.latitude, venue.longitude, RADIUS_METERS);
+    setUserLocations(data);
+  };
+
   const subscribeToLocationUpdates = () => {
-    console.log('📡 Subscribing to location updates...');
-    return supabase
-      .channel('location-updates')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'user_location' },
-        payload => {
-          const loc = payload.new;
-          console.log('📬 Received location insert:', loc);
-          if (isWithinRadius(loc.latitude, loc.longitude)) {
-            console.log('✅ New location is within radius – adding to state');
-            setUserLocations(prev => [...prev, loc]);
-          } else {
-            console.log('🚫 New location is outside radius – ignoring');
-          }
-        }
-      )
-      .subscribe();
+    console.log("📡 Subscribing to location updates...");
+    return subscribeToLocationInserts(async (loc) => {
+      console.log("📬 New activity detected, refreshing...");
+      await refreshNearbyUsers();
+    });
   };
 
   useEffect(() => {
@@ -132,7 +84,7 @@ const OwnerMapScreen = () => {
     return () => {
       if (subscription) {
         console.log('🧹 Cleaning up Supabase channel subscription');
-        supabase.removeChannel(subscription);
+        unsubscribeFromLocationUpdates(subscription);
       }
     };
   }, [user]);
@@ -180,12 +132,27 @@ const OwnerMapScreen = () => {
         {userLocations.map((loc, index) => (
           <Marker
             key={index}
-            coordinate={{ latitude: loc.latitude, longitude: loc.longitude }}
+            coordinate={{ latitude: parseFloat(loc.latitude), longitude: parseFloat(loc.longitude) }}
             title={`User ${loc.user_id}`}
             pinColor="green"
           />
         ))}
       </MapView>
+
+      {__DEV__ && (
+        <View style={{ position: 'absolute', bottom: 40, left: 20, gap: 10 }}>
+          {venue && (
+            <Button
+              title="Create Nearby"
+              onPress={() => simulateUserMovementNearVenue(venue, 15)}
+            />
+          )}
+          <Button
+            title="🧹 Delete Nearby"
+            onPress={deleteTestLocations}
+          />
+        </View>
+      )}
     </View>
   );
 };
