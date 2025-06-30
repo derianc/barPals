@@ -45,7 +45,6 @@ const OwnerProfileCard = ({
     const scale = useSharedValue(1);
     const router = useRouter();
     const [selectedVenueId, setSelectedVenueId] = useState<string>("");
-    const { setUser } = useUser();
 
     useEffect(() => {
         if (venues.length > 0) {
@@ -92,9 +91,6 @@ const OwnerProfileCard = ({
             //console("Logout Error", error.message);
             return;
         }
-
-        // ✅ Clear global context
-        setUser(null);
 
         // ✅ Navigate to login or splash screen
         router.replace("/login");

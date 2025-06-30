@@ -9,8 +9,8 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { getLoggedInUser } from "@/services/sbUserService";
 import { getConsecutiveReceiptDays } from "@/services/sbCoreReceiptService";
+import { useUser } from "@/contexts/userContext";
 
 
 interface UserProfileData {
@@ -27,32 +27,25 @@ interface UserProfileData {
 }
 
 const Header = ({ height }: { height: number }) => {
-  const [user, setUser] = useState<UserProfileData | null>(null);
   const [visitStreak, setVisitStreak] = useState(0);
   const [displayName, setDisplayName] = useState("Welcome back!");
+  const { user } = useUser() as { user: UserProfileData | null };
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const userData = await getLoggedInUser();
-      if(userData) {
-        setUser(userData);
-        if (userData.full_name) {
-          setDisplayName(userData.full_name);
-        }
-      }
-    };
-
-    fetchUserData();
-  }, []);
+    if (user?.full_name) {
+      setDisplayName(user.full_name);
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchConsecutiveVisits = async () => {
-      const result = await getConsecutiveReceiptDays();
+      if (!user?.id) return;
+      const result = await getConsecutiveReceiptDays(user.id);
       setVisitStreak(result);
     };
 
     fetchConsecutiveVisits();
-  }, []);
+  }, [user]);
 
   const { colorMode }: any = useContext(ThemeContext);
   const now = new Date();

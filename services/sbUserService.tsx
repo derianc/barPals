@@ -5,29 +5,13 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { router } from "expo-router";
+import { UserProfileData } from "@/types/UserProfileData";
 
 export interface RegisterResult {
   user?: Pick<User, "id" | "email">;
   signUpError?: AuthError | null;
   profileError?: PostgrestError | null;
 }
-
-export interface UserProfileData {
-  id: string;
-  email: string;
-  deviceToken?: string;
-  username?: string | null | undefined;
-  full_name?: string;
-  avatar_url?: string;
-  role: "user" | "owner" | "admin" | string;
-  is_active: boolean;
-  allow_notifications: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-const STORAGE_KEY = "loggedInUser";
-
 
 export async function login(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -50,94 +34,18 @@ export async function login(email: string, password: string) {
 
 export async function logout() {
   const { error } = await supabase.auth.signOut();
-  await AsyncStorage.multiRemove([STORAGE_KEY, "selectedVenueId"]);
 
   if (error) {
     console.error("Logout failed:", error.message);
     return { error };
   }
 
+  await AsyncStorage.removeItem("currentUserId");
+
   // Reset app navigation
   router.replace("/login");
 
   return { error: null };
-}
-
-export async function getLoggedInUser(): Promise<UserProfileData | null> {
-  // 1. Try reading from local storage first
-  try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as UserProfileData;
-      return parsed;
-    }
-  } catch (e) {
-    console.warn("⚠️ Failed to read user from local storage:", e);
-  }
-
-  // 2. Fallback: Check Supabase session + fetch from DB
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    console.warn("⚠️ Failed to get session:", sessionError.message);
-  }
-
-  if (!session?.user?.id) {
-    console.warn("⚠️ Supabase session missing or expired.");
-    return null;
-  }
-
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", session.user.id)
-    .single();
-
-  if (error) {
-    console.warn("⚠️ Failed to load profile from Supabase:", error.message);
-  } else if (profile) {
-    // Optional: Cache in localStorage
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    } catch (e) {
-      console.warn("⚠️ Failed to save profile to local storage:", e);
-    }
-
-    return profile as UserProfileData;
-  }
-
-  return null;
-}
-
-export async function getLoggedInUserId(): Promise<string | null> {
-  // First try local storage (global context should already be hydrated)
-  try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed?.id) {
-        return parsed.id;
-      }
-    }
-  } catch (e) {
-    console.warn("⚠️ Failed to parse user from AsyncStorage:", e);
-  }
-
-  // Fallback to Supabase session
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    console.error("❌ Failed to get user from Supabase session:", error?.message);
-    return null;
-  }
-
-  return user.id;
 }
 
 export async function getProfile(): Promise<{ data: UserProfileData | null; error: PostgrestError | null } | null> {
@@ -156,6 +64,21 @@ export async function getProfile(): Promise<{ data: UserProfileData | null; erro
     .select("*")
     .eq("id", session.user.id)
     .single();
+
+  return { data, error };
+}
+
+export async function getProfileById(userId: string): Promise<{ data: UserProfileData | null; error: PostgrestError | null } | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) {
+    console.error("❌ Failed to get user profile:", error?.message);
+    return null;
+  }
 
   return { data, error };
 }

@@ -11,6 +11,7 @@ import { Text as AppText } from "@/components/ui/text";
 import 'react-native-gesture-handler';
 import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { useUser } from "@/contexts/userContext";
 
 const userFeed = () => {
 
@@ -21,11 +22,18 @@ const userFeed = () => {
   const swipeableRefs = useRef<Record<number, Swipeable | null>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
+  const { user, rehydrated } = useUser();
 
-  const fetchReceipts = async () => {
+  useEffect(() => {
+    if (rehydrated && user) {
+      fetchReceipts(user.id); // pass explicitly
+    }
+  }, [rehydrated, user]);
+
+  const fetchReceipts = async (userId: string) => {
     try {
       setRefreshing(true);
-      const result = await getAllReceiptsForUser();
+      const result = await getAllReceiptsForUser(userId);
       setReceipts(result);
     } catch (err) {
       console.error("Failed to load receipts", err);
@@ -33,10 +41,6 @@ const userFeed = () => {
       setRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    fetchReceipts();
-  }, []);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -189,7 +193,12 @@ const userFeed = () => {
         contentContainerClassName="gap-3 px-5"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={fetchReceipts} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              if (user) fetchReceipts(user.id);
+            }}
+          />
         }
       >
         {filteredReceipts.length === 0 ? (

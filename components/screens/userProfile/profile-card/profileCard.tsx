@@ -12,10 +12,12 @@ import Animated, {
 import { Pressable } from "@/components/ui/pressable";
 import { Icon } from "@/components/ui/icon";
 import { Bell, LogOut } from "lucide-react-native";
-import { getLoggedInUser, logout, updateUserProfile } from "@/services/sbUserService";
+import { logout, updateUserProfile } from "@/services/sbUserService";
 import { useRouter } from "expo-router";
 import { sendNotification } from "@/services/fcmNotificationService";
 import * as Notifications from 'expo-notifications';
+import { useUser } from "@/contexts/userContext";
+
 
 interface ProfileCardProps {
   userId: string;
@@ -35,6 +37,7 @@ const ProfileCard = ({
   const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
   const scale = useSharedValue(1);
   const router = useRouter();
+  const { user, rehydrated } = useUser();
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -66,7 +69,6 @@ const ProfileCard = ({
   };
 
   const sendTestNotification = async () => {
-    const user = await getLoggedInUser();
     if (!user) {
       console.warn("User not found. Cannot send notification.");
       return;
@@ -122,21 +124,6 @@ const ProfileCard = ({
             </View>
             <AppText style={styles.logoutText}>Log Out</AppText>
           </HStack>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={{
-            backgroundColor: "#2563EB",
-            marginHorizontal: 20,
-            marginTop: 24,
-            borderRadius: 12,
-            paddingVertical: 12,
-            alignItems: "center",
-          }}
-          // onPress={testLocalNotification}
-          onPress={sendTestNotification}
-        >
-          <AppText style={{ color: "#fff", fontWeight: "bold" }}>Send Test Notification</AppText>
         </TouchableOpacity>
       </View>
     </>

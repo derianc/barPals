@@ -22,6 +22,7 @@ import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbCoreRecei
 import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
 import { format, parse, isValid } from "date-fns";
+import { useUser } from "@/contexts/userContext";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -36,6 +37,8 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   const [bottomSheetHeader, setBottomHeader] = useState("Failed");
   const [bottomSheetText, setBottomText] = useState("Receipt Upload Failed");
   const [bottomSheetSuccess, setBottomSuccess] = useState(false);
+
+  const { user } = useUser();
 
   useEffect(() => {
     (async () => {
@@ -74,6 +77,11 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
   const handleCapture = async () => {
     if (!cameraRef) return;
+
+    if (!user?.id) {
+      console.warn("⚠️ No user found — skipping insert.");
+      return;
+    }
 
     try {
       // 1) Take picture (no base64; we'll upload the file itself)
@@ -117,7 +125,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
 
       // 5) Save to Supabase
-      const isInsertSuccessful = await insertReceiptDetails(txData);
+      const isInsertSuccessful = await insertReceiptDetails(user.id, txData);
       if (isInsertSuccessful) {
         setBottomHeader("Success!")
         setBottomText(`Receipt for ${txData.merchantName} uploaded successfully!`)

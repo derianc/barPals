@@ -12,7 +12,6 @@ import {
 } from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
-import { getLoggedInUser } from "@/services/sbUserService";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
 import { Camera } from "lucide-react-native";
 import { Icon } from "@/components/ui/icon";
@@ -21,34 +20,21 @@ import OwnerProfileCard from "@/components/screens/ownerProfile/profile-card/own
 import { getVenuesForProfile, Venue } from "@/services/sbVenueService";
 import { useUser } from "@/contexts/userContext";
 
-interface UserProfileData {
-  id: string;
-  email: string;
-  username: string | null;
-  full_name: string | null;
-  allow_notifications: boolean;
-  avatar_url?: string | null;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 const OwnerProfileDetails = () => {
   const [loading, setLoading] = useState(true);
   const [venuesList, setVenueList] = useState<Venue[]>([]);
-  const { user, setUser } = useUser();
+  const { user, rehydrated } = useUser();
 
   useEffect(() => {
     const fetchVenues = async () => {
-      const venues = await getVenuesForProfile(); // [{ venue: { ... } }]
-      //const flattened = raw.map((v) => v.venue); // [{ id, name, address }]
+      if (!user?.id) return;
+      const venues = await getVenuesForProfile(user.id);
       setVenueList(venues);
       setLoading(false);
     };
 
     fetchVenues();
-  }, []);
+  }, [user]);
 
   // const handlePickImage = async () => {
   //   const result = await DocumentPicker.getDocumentAsync({
@@ -98,7 +84,7 @@ const OwnerProfileDetails = () => {
   //   }
   // };
 
-  if (loading) {
+  if (loading || !user || !rehydrated) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" />
@@ -148,8 +134,8 @@ const OwnerProfileDetails = () => {
         username={user?.username || ""}
         created_at={user?.created_at || ""}
         allow_notifications={user?.allow_notifications ?? false}
-        onEditName={(val) => { if (user) setUser({ ...user, full_name: val }); }}
-        onToggleNotifications={(val) => { if (user) setUser({ ...user, allow_notifications: val }); }}
+        onEditName={(val) => { if (user) return; }}
+        onToggleNotifications={(val) => { if (user) return; }}
         venues={venuesList}
       />
     </VStack>

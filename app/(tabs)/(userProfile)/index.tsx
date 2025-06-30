@@ -8,32 +8,17 @@ import {
   Text} from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
-import { getLoggedInUser, UserProfileData } from "@/services/sbUserService";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
 import { Camera } from "lucide-react-native";
 import ProfileCard from "@/components/screens/userProfile/profile-card/profileCard";
 import { Icon } from "@/components/ui/icon";
 import { Calendar } from "lucide-react-native";
 import { useUser } from "@/contexts/userContext";
+import { UserProfileData } from "@/types/UserProfileData";
 
 
 const UserProfileDetails = () => {
-  const { session, rehydrated } = useUser();
-  const [localUser, setLocalUser] = useState<UserProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!rehydrated || !session) return;
-
-      setLoading(true);
-      const userData = await getLoggedInUser();
-      setLocalUser(userData);
-      setLoading(false);
-    };
-
-    fetchUserData();
-  }, [session, rehydrated]);
+  const { user, rehydrated } = useUser();
 
   // const handlePickImage = async () => {
   //   const result = await DocumentPicker.getDocumentAsync({
@@ -83,7 +68,7 @@ const UserProfileDetails = () => {
   //   }
   // };
 
-  if (loading) {
+  if (!rehydrated || !user) {
     return (
       <View style={styles.loader}>
         <ActivityIndicator size="large" />
@@ -97,9 +82,9 @@ const UserProfileDetails = () => {
 
       {/* Overlapping Avatar */}
       <View style={styles.avatarContainer}>
-        {localUser?.avatar_url ? (
+        {user?.avatar_url ? (
           <Image
-            source={{ uri: localUser.avatar_url }}
+            source={{ uri: user.avatar_url }}
             style={styles.avatarImage}
           />
         ) : (
@@ -113,12 +98,12 @@ const UserProfileDetails = () => {
 
       {/* Username + Join Date */}
       <View style={styles.profileSummary}>
-        <Text style={styles.userName}>@{localUser?.username}</Text>
+        <Text style={styles.userName}>@{user?.username}</Text>
         <Text style={styles.joinDate}>
           <Icon as={Calendar} size="sm" className="text-typography-500" />
           Joined{" "}
-          {localUser?.created_at
-            ? new Date(localUser.created_at).toLocaleDateString("en-US", {
+          {user?.created_at
+            ? new Date(user.created_at).toLocaleDateString("en-US", {
               year: "numeric",
               month: "short",
               day: "2-digit",
@@ -128,15 +113,13 @@ const UserProfileDetails = () => {
       </View>
 
       <ProfileCard
-        userId={localUser?.id || ""}
-        full_name={localUser?.full_name || ""}
-        username={localUser?.username || ""}
-        created_at={localUser?.created_at || ""}
-        allow_notifications={localUser?.allow_notifications ?? false}
-        onEditName={(val) => setLocalUser((prev) => prev && { ...prev, full_name: val })}
-        onToggleNotifications={(val) =>
-          setLocalUser((prev) => prev && { ...prev, allow_notifications: val })
-        }
+        userId={user?.id || ""}
+        full_name={user?.full_name || ""}
+        username={user?.username || ""}
+        created_at={user?.created_at || ""}
+        allow_notifications={user?.allow_notifications ?? false}
+        onEditName={(val) => { if (user) return; }}
+        onToggleNotifications={(val) => { if (user) return; }}
       />
 
 

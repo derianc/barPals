@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, TouchableOpacity, Image, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Input, InputField } from "@/components/ui/input";
@@ -8,8 +8,7 @@ import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { getProfile, login } from "@/services/sbUserService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { login } from "@/services/sbUserService";
 import { useUser } from "@/contexts/userContext";
 import { registerForFcmPushNotificationsAsync } from "@/services/fcmNotificationService";
 
@@ -18,7 +17,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("derianc@gmail.com");
   const [password, setPassword] = useState("Test123!");
   const [loading, setLoading] = useState(false);
-  const { setUser } = useUser();
+  const { user, rehydrated } = useUser();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -27,33 +27,39 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    const { authData, error } = await login(email, password);
+    const { error } = await login(email, password);
     setLoading(false);
 
     if (error) {
       Alert.alert("Sign-in Error", error.message);
       return;
     }
-
-    const profileResult = await getProfile();
-    if (!profileResult || profileResult.error || !profileResult.data) {
-      Alert.alert("Error", "Failed to load user profile.");
-      return;
-    }
-
-    setUser(profileResult.data);
-    await AsyncStorage.setItem("loggedInUser", JSON.stringify(profileResult.data));
-
-    // Update device token on login
-    // await registerForPushNotificationsAsync(profileResult.data.id);
-    await registerForFcmPushNotificationsAsync(profileResult.data.id);
-
-    if (profileResult.data.role === "owner") {
-      router.replace("/(tabs)/(ownerHome)");
-    } else {
-      router.replace("/(tabs)/(userHome)");
-    }
   };
+  
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      if (rehydrated && user && !hasRedirected) {
+        const run = async () => {
+          try {
+            await registerForFcmPushNotificationsAsync(user.id);
+            setHasRedirected(true);
+
+            const destination =
+              user.role === "owner"
+                ? "/(tabs)/(ownerHome)"
+                : "/(tabs)/(userHome)";
+            router.replace(destination);
+          } catch (e) {
+            console.error("Login redirect error", e);
+          }
+        };
+
+        run();
+      }
+    }, 500); // Adjust this timeout to what works reliably on your device
+
+    return () => clearTimeout(delay);
+  }, [rehydrated, user?.id, hasRedirected]);
 
   return (
     <LinearGradient
@@ -171,8 +177,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   inputWrapper: {
-    // borderBottomWidth: 1,
-    // borderColor: "#fff",
     backgroundColor: "transparent",
     borderRadius: 8,
   },

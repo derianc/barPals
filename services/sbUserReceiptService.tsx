@@ -1,8 +1,4 @@
 import { supabase } from "@/supabase";
-import { differenceInDays, subDays } from "date-fns";
-
-import { getLoggedInUserId } from "./sbUserService";
-
 
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -160,10 +156,7 @@ export async function getAverageItemsPerVisit(
 }
 
 // populate user feed
-export async function getAllReceiptsForUser() {
-
-    // 1. Get logged in user
-    const userId = await getLoggedInUserId()
+export async function getAllReceiptsForUser(userId: string): Promise<any[]> {
 
     // 2. Query receipts with embedded item count
     const { data, error } = await supabase

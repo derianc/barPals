@@ -13,6 +13,7 @@ import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { getAllReceiptsForVenue } from "@/services/sbOwnerReceiptService";
 import { getSelectedVenueHash } from "@/services/sbVenueService";
+import { useUser } from "@/contexts/userContext";
 
 const ownerFeed = () => {
 
@@ -24,10 +25,12 @@ const ownerFeed = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
     const [venueHash, setVenueHash] = useState<string | null>(null);
+    const { user } = useUser();
 
     useEffect(() => {
-        getSelectedVenueHash().then(setVenueHash);
-    }, []);
+        if (!user?.id) return;
+        getSelectedVenueHash({userId: user.id}).then(setVenueHash);
+    }, [user]);
 
     const fetchReceipts = async () => {
         try {

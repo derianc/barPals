@@ -22,8 +22,8 @@ import { DollarSign, StoreIcon, PackageIcon, Box, CloudRain } from "lucide-react
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
-import { getLoggedInUserId } from "@/services/sbUserService";
 import { View } from "react-native";
+import { useUser } from "@/contexts/userContext";
 
 type Timeframe = "7days" | "30days" | "all";
 
@@ -76,11 +76,9 @@ const UserHome = () => {
   const [spendData, setSpendData] = useState<SpendBucket[]>([]);
   const [spendLoading, setSpendLoading] = useState<boolean>(true);
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user } = useUser();
+  const userId = user?.id;
 
-  useEffect(() => {
-    getLoggedInUserId().then(setUserId);
-  }, []);
 
   // load userHome Data
   useEffect(() => {

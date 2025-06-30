@@ -14,8 +14,7 @@ import {
   TagIcon,
   User,
 } from "lucide-react-native";
-import { useEffect, useState } from "react";
-import { getLoggedInUser } from "@/services/sbUserService";
+import { useUser } from "@/contexts/userContext";
 
 interface TabItem {
   name: string;
@@ -26,19 +25,10 @@ interface TabItem {
 
 function BottomTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [userType, setUserType] = useState<"user" | "owner">("user");
+  const { user } = useUser();
+  const avatarUrl = user?.avatar_url ?? null;
+  const userType = user?.role === "owner" ? "owner" : "user";
 
-  useEffect(() => {
-    const fetchUserTypeAndAvatar = async () => {
-      const userData = await getLoggedInUser();
-
-      setAvatarUrl(userData?.avatar_url || null);
-      setUserType(userData?.role === "owner" ? "owner" : "user");
-    };
-
-    fetchUserTypeAndAvatar();
-  }, []);
 
   const tabItems: TabItem[] =
     userType === "owner"

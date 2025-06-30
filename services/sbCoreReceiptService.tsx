@@ -2,7 +2,6 @@ import { supabase } from "@/supabase";
 import * as Crypto from "expo-crypto";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
-import { getLoggedInUserId } from "./sbUserService";
 
 export * from './sbUserReceiptService'
 export * from './sbOwnerReceiptService'
@@ -27,12 +26,11 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
   return !!(existing && existing.length > 0);
 }
 
-export async function insertReceiptDetails(receiptData: TransactionData): Promise<boolean> {
+export async function insertReceiptDetails(userId: string, receiptData: TransactionData): Promise<boolean> {
   
   // 1. Insert into user_receipts
   const venueHash = await generateVenueHash(sanitizeText(receiptData.merchantAddress) ?? "");
 
-  const userId = await getLoggedInUserId()
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
     .insert({
@@ -87,8 +85,7 @@ export async function insertReceiptDetails(receiptData: TransactionData): Promis
   return true;
 }
 
-export async function getConsecutiveReceiptDays(): Promise<number> {
-  const userId = await getLoggedInUserId()
+export async function getConsecutiveReceiptDays(userId: string): Promise<number> {
 
   // 2. Fetch distinct transaction dates (deduped per day)
   const { data, error } = await supabase

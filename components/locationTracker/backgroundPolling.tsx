@@ -1,15 +1,16 @@
 import BackgroundFetch from "react-native-background-fetch";
 import * as Location from "expo-location";
-import { getLoggedInUser } from "@/services/sbUserService";
 import { saveUserLocation } from "@/services/sbLocationService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const onEvent = async () => {
     try {
         console.log("📦 BackgroundFetch fired", new Date().toISOString());
 
-        const user = await getLoggedInUser();
-        if (!user?.id) {
-            console.warn("⚠️ No user found during background fetch");
+        const userId = await AsyncStorage.getItem("currentUserId");
+
+        if (!userId) {
+            console.warn("⚠️ No cached user ID found – skipping location save");
             return;
         }
 
@@ -34,7 +35,7 @@ const onEvent = async () => {
         }
         if (location) {
             console.log("📍 Using fallback location:", location.coords);
-            await saveUserLocation(user.id, location);
+            await saveUserLocation(userId, location);
         } else {
             console.warn("🚫 No fallback location available");
         }

@@ -40,6 +40,11 @@ export default ({ config }) => {
       ],
       googleServicesFile: './android/app/google-services.json',
       useNextNotificationsApi: true,
+      config: {
+        googleMaps: {
+          apiKey: "AIzaSyCi-LcFua4tTjLm9RUMKDiZLwFkuoRovqQ"
+        }
+      },
     },
     web: {
       bundler: 'metro',

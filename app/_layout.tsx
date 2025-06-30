@@ -1,28 +1,22 @@
 // app/_layout.tsx
+import "@/global.css";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Slot, useRouter, usePathname } from "expo-router";
 import { useFonts } from "expo-font";
 import { StatusBar } from "expo-status-bar";
-import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_700Bold,
-} from "@expo-google-fonts/dm-sans";
-
-import "@/global.css";
+import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, } from "@expo-google-fonts/dm-sans";
 import { ThemeProvider, ThemeContext, ThemeContextType } from "@/contexts/theme-context";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { UserContext, UserProvider } from "@/contexts/userContext";
 import { LocationTracker } from "@/components/locationTracker";
-import { supabase } from "@/supabase";
 import { NotificationHandler } from "@/components/notifications/NotificationHandler";
 import * as Notifications from 'expo-notifications';
 
 const LayoutInner = () => {
-  const publicRoutes = ["/login", "/signup", "/"]; // add others if needed
+  const publicRoutes = ["/login", "/signup", "/"];
   const { colorMode } = useContext(ThemeContext) as ThemeContextType;
-  const { rehydrated } = useContext(UserContext);
+  const { user, rehydrated } = useContext(UserContext);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -31,8 +25,6 @@ const LayoutInner = () => {
     "dm-sans-medium": DMSans_500Medium,
     "dm-sans-bold": DMSans_700Bold,
   });
-
-  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     Notifications.setNotificationChannelAsync('default', {
@@ -45,26 +37,18 @@ const LayoutInner = () => {
   }, []);
 
   useEffect(() => {
-    const checkSession = async () => {
-      const currentPath = pathname.split("?")[0];
-      const isPublicRoute = publicRoutes.includes(currentPath);
+    if (!rehydrated) return;
 
-      const { data } = await supabase.auth.getSession();
+    const currentPath = pathname.split("?")[0];
+    const isPublic = publicRoutes.includes(currentPath);
 
-      if (!data.session && !isPublicRoute) {
-        console.log("🔐 No session & protected route → redirecting to /login");
-        router.replace("/login");
-      }
+    if (!user && !isPublic) {
+      console.log("🔐 No session found (UserContext) → redirecting to /login");
+      router.replace("/login");
+    }
+  }, [user, rehydrated, pathname]);
 
-      setSessionChecked(true);
-    };
-
-    checkSession();
-  }, [pathname]);
-
-  if (!fontsLoaded || !rehydrated || !sessionChecked) {
-    return null;
-  }
+  if (!fontsLoaded || !rehydrated) return null;
 
   return (
     <GluestackUIProvider mode={colorMode}>
@@ -75,6 +59,7 @@ const LayoutInner = () => {
     </GluestackUIProvider>
   );
 };
+
 
 export default function RootLayout() {
   return (

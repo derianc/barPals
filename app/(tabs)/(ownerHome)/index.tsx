@@ -10,7 +10,8 @@ import { DollarSign, StoreIcon, PackageIcon } from "lucide-react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
-import { getSelectedVenueHash } from "@/services/sbVenueService";
+import { useUser } from "@/contexts/userContext";
+
 import {
   getCurrentAndPreviousTotalVenueSpend,
   getAverageSpendPerCustomer,
@@ -20,6 +21,7 @@ import {
   getVenueVisitsByDay,
   SpendBucket
 } from "@/services/sbCoreReceiptService";
+import { getSelectedVenueHash } from "@/services/sbVenueService";
 
 type Timeframe = "7days" | "30days" | "all";
 
@@ -51,7 +53,6 @@ const OwnerHome = () => {
     selectedTabIndex === 0 ? "7days" :
     selectedTabIndex === 1 ? "30days" : "all";
 
-  const [venueHash, setVenueHash] = useState<string | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [spendLoading, setSpendLoading] = useState(true);
 
@@ -67,10 +68,15 @@ const OwnerHome = () => {
 
   const [spendData, setSpendData] = useState<SpendBucket[]>([]);
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
+  const { user } = useUser();
+  const [venueHash, setVenueHash] = useState<string | null>(null);
 
   useEffect(() => {
-    getSelectedVenueHash().then(setVenueHash);
-  }, []);
+    if (user?.id) {
+      getSelectedVenueHash({ userId: user.id }).then(setVenueHash);
+    }
+  }, [user?.id]);
+
 
   useEffect(() => {
     if (venueHash) {
