@@ -22,7 +22,8 @@ export default ({ config }) => {
         UIBackgroundModes: ['location'],
         NSLocationWhenInUseUsageDescription: 'We need your location to show your activity.',
         NSLocationAlwaysAndWhenInUseUsageDescription:
-          'We use your location to track background activity while you\'re out.'
+          'We use your location to track background activity while you\'re out.',
+        ITSAppUsesNonExemptEncryption: false
       }
     },
     android: {
@@ -63,7 +64,15 @@ export default ({ config }) => {
       ],
       'expo-font',
       'expo-web-browser',
-      'react-native-background-fetch'
+      'react-native-background-fetch',
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            useModularHeaders: true
+          }
+        }
+      ]
     ],
     experiments: {
       typedRoutes: true
@@ -79,6 +88,6 @@ export default ({ config }) => {
       fallbackToCacheTimeout: 0,
       checkAutomatically: "ON_LOAD"
     },
-    runtimeVersion:  "1.0.0"
+    runtimeVersion: "1.0.0"
   };
 };
