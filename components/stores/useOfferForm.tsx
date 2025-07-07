@@ -1,37 +1,34 @@
-import { create } from "zustand";
-
-type OfferAudience = {
-  recentVisitDays?: number;
-  minSpend?: number;
-  withinKm?: number;
-};
+// useOfferForm.ts
+import { create } from 'zustand';
 
 type OfferFormState = {
   title: string;
   description: string;
-  imageUrl?: string;
-  validFrom?: Date;
-  validUntil?: Date;
-  audience: OfferAudience;
-  setField: (key: keyof OfferFormState, value: any) => void;
-  resetForm: () => void;
+  validFrom: Date | null;
+  validUntil: Date | null;
+  isSubmitting: boolean;
+  setField: (key: keyof Omit<OfferFormState, 'setField' | 'submitOffer'>, value: any) => void;
+  submitOffer: () => Promise<void>;
 };
 
-export const useOfferForm = create<OfferFormState>((set) => ({
-  title: "",
-  description: "",
-  imageUrl: undefined,
-  validFrom: undefined,
-  validUntil: undefined,
-  audience: {},
+export const useOfferForm = create<OfferFormState>((set, get) => ({
+  title: '',
+  description: '',
+  validFrom: null,
+  validUntil: null,
+  isSubmitting: false,
   setField: (key, value) => set({ [key]: value }),
-  resetForm: () =>
-    set({
-      title: "",
-      description: "",
-      imageUrl: undefined,
-      validFrom: undefined,
-      validUntil: undefined,
-      audience: {},
-    }),
+  submitOffer: async () => {
+    set({ isSubmitting: true });
+    try {
+      const { title, description, validFrom, validUntil } = get();
+      // 🔧 TODO: Add your actual offer saving logic (e.g. Supabase insert)
+      console.log("Submitting offer:", { title, description, validFrom, validUntil });
+      // await saveOfferToSupabase(...)
+    } catch (error) {
+      console.error("❌ Failed to submit offer:", error);
+    } finally {
+      set({ isSubmitting: false });
+    }
+  },
 }));

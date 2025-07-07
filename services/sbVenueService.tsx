@@ -74,14 +74,18 @@ export async function getSelectedVenueHash({
 }
 
 export async function getVenueForUser(profileId: string) {
-  const { data: venueLink, error: linkError } = await supabase
+  const { data, error } = await supabase
     .from("venue_users")
     .select("venue_id")
     .eq("profile_id", profileId)
-    .single();
+    .limit(1);
 
-  if (linkError || !venueLink) throw new Error("Failed to get venue_id");
-  return venueLink.venue_id;
+  if (error || !data || data.length === 0) {
+    console.error("❌ Failed to fetch venue_id", error);
+    throw new Error("No venue found for this user.");
+  }
+
+  return data[0].venue_id;
 }
 
 export async function getVenueDetails(venueId: string) {

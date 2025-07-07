@@ -28,3 +28,44 @@ export const getOffersForVenue = async (profileId: string) => {
 
   return offers;
 };
+
+export const submitOffer = async ({
+  venueId,
+  title,
+  description,
+  imageUrl,
+  validFrom,
+  validUntil,
+  targetCriteria,
+  scheduledAt,
+}: {
+  venueId: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  validFrom: Date;
+  validUntil: Date;
+  targetCriteria?: any; // could be typed more strictly if known
+  scheduledAt?: Date;
+}) => {
+  const { data, error } = await supabase.from("offers").insert([
+    {
+      venue_id: venueId,
+      title,
+      description,
+      image_url: imageUrl || null,
+      valid_from: validFrom.toISOString(),
+      valid_until: validUntil.toISOString(),
+      target_criteria: targetCriteria ?? null,
+      scheduled_at: scheduledAt?.toISOString() ?? null,
+      sent: false,
+    },
+  ]);
+
+  if (error) {
+    console.error("❌ Failed to submit offer:", error);
+    throw new Error("Failed to submit offer");
+  }
+
+  return data?.[0];
+};
