@@ -23,6 +23,7 @@ import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
 import { format, parse, isValid } from "date-fns";
 import { useUser } from "@/contexts/userContext";
+import { findVenueByAddress } from "@/services/sbVenueService";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -103,7 +104,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       const analysisResult = await analyzeReceipt(publicUrl);
 
       // 4) Extract typed TransactionData from the raw AnalyzeResult
-      const txData = extractReceiptDetails(analysisResult, publicUrl);
+      const txData = await extractReceiptDetails(analysisResult, publicUrl);
 
       const isValid = isReceiptValid(txData);
       if (!isValid) {
@@ -261,7 +262,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     return "";
   }
 
-  function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string): TransactionData {
+  async function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string):  Promise<TransactionData> {
     if (!receipt || !receipt.documents || receipt.documents.length === 0) {
       throw new Error("Invalid receipt data.");
     }
@@ -280,9 +281,23 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     // 1) Extract the "Items" array field (if it exists)
     const items = receipt?.documents[0]?.fields?.Items as DocumentArrayField
 
+    let merchantName = getContent("MerchantName");
+    const merchantAddress = getContent("MerchantAddress");
+
+    // Lookup venue name if merchantName is blank but address is provided
+    console.log("🔍 Merchant Name:", merchantName);
+    if (!merchantName && merchantAddress) {
+      console.log("🔍 Merchant Address provided, looking up venue by address:", merchantAddress);
+      const venue = await findVenueByAddress(merchantAddress);
+      console.log("🔍 Found venue by address:", venue);
+      if (venue?.name) {
+        merchantName = venue.name;
+      }
+    }
+
     // 2) Construct TransactionData
     const tx: TransactionData = {
-      merchantName: getContent("MerchantName") || "Unknown",
+      merchantName: merchantName,
       merchantAddress: getContent("MerchantAddress") || "Unknown",
       transactionDate: formatDate(getContent("TransactionDate")),
       transactionTime: formatTime(getContent("TransactionTime")),

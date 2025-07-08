@@ -98,3 +98,36 @@ export async function getVenueDetails(venueId: string) {
   if (error || !data) throw new Error("Failed to get venue details");
   return data;
 }
+
+export async function findVenueByAddress(fullAddress: string) {
+  const { address_line1, city, state, postal_code } = parseAddress(fullAddress);
+
+  const { data, error } = await supabase
+    .from("venues")
+    .select("id, name")
+    .ilike("address_line1", `%${address_line1.split(" ")[0]}%`) // fuzzy street number/street match
+    .ilike("city", `%${city}%`)
+    .eq("state", state)
+    .eq("postal_code", postal_code)
+    .limit(1);
+
+  if (error) {
+    console.error("Venue lookup failed:", error);
+    return null;
+  }
+
+  return data?.[0] || null;
+}
+
+function parseAddress(address: string) {
+  const regex = /^(.*)\s+([A-Za-z\s]+),?\s*([A-Z]{2})\s+(\d{5})$/;
+  const match = address.match(regex);
+
+  if (!match) {
+    console.warn("Failed to parse address:", address);
+    return { address_line1: address, city: "", state: "", postal_code: "" };
+  }
+
+  const [, address_line1, city, state, postal_code] = match;
+  return { address_line1: address_line1.trim(), city: city.trim(), state, postal_code };
+}
