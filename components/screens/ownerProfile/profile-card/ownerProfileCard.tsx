@@ -45,6 +45,7 @@ const OwnerProfileCard = ({
     const scale = useSharedValue(1);
     const router = useRouter();
     const [selectedVenueId, setSelectedVenueId] = useState<string>("");
+    const [notificationsEnabled, setNotificationsEnabled] = React.useState(allow_notifications);
 
     useEffect(() => {
         if (venues.length > 0) {
@@ -70,7 +71,7 @@ const OwnerProfileCard = ({
     };
 
     const handleToggle = async () => {
-        const newValue = !allow_notifications;
+        const newValue = !notificationsEnabled;
 
         const { error } = await updateUserProfile(userId, {
             allow_notifications: newValue,
@@ -81,6 +82,7 @@ const OwnerProfileCard = ({
             return;
         }
 
+        setNotificationsEnabled(newValue);
         onToggleNotifications?.(newValue);
     };
 
@@ -116,10 +118,10 @@ const OwnerProfileCard = ({
                     </HStack>
 
                     <Switch
-                        value={allow_notifications}
+                        value={notificationsEnabled}
                         onValueChange={handleToggle}
                         trackColor={{ false: "#374151", true: "#6A11CB" }}
-                        thumbColor={allow_notifications ? "#fff" : "#f4f4f5"}
+                        thumbColor={notificationsEnabled ? "#fff" : "#f4f4f5"}
                     />
                 </HStack>
             </AnimatedPressable>

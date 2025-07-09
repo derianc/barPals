@@ -36,53 +36,6 @@ const OwnerProfileDetails = () => {
     fetchVenues();
   }, [user]);
 
-  // const handlePickImage = async () => {
-  //   const result = await DocumentPicker.getDocumentAsync({
-  //     type: "image/*",
-  //     copyToCacheDirectory: true,
-  //   });
-
-  //   if (result.assets && result.assets.length > 0) {
-  //     const file = result.assets[0];
-
-  //     const response = await fetch(file.uri);
-  //     const blob = await response.blob();
-
-  //     const filePath = `avatars/${Date.now()}_${file.name}`;
-  //     const { error: uploadError } = await supabase.storage
-  //       .from("user-avatars")
-  //       .upload(filePath, blob, {
-  //         contentType: file.mimeType || "image/jpeg",
-  //         upsert: true,
-  //       });
-
-  //     if (uploadError) {
-  //       console.error("Upload failed:", uploadError.message);
-  //       Alert.alert("Upload failed", uploadError.message);
-  //       return;
-  //     }
-
-  //     const { data: urlData } = supabase.storage
-  //       .from("user-avatars")
-  //       .getPublicUrl(filePath);
-
-  //     const avatarUrl = urlData.publicUrl;
-
-  //     // Update profile with the new avatar URL
-  //     const { error: updateError } = await supabase
-  //       .from("profiles")
-  //       .update({ avatar_url: avatarUrl })
-  //       .eq("id", user?.id); // Replace with actual ID logic
-
-  //     if (updateError) {
-  //       console.error("Profile update failed:", updateError.message);
-  //       Alert.alert("Profile update failed", updateError.message);
-  //       return;
-  //     }
-
-  //     setUser((prev) => (prev ? { ...prev, avatar_url: avatarUrl } : prev));
-  //   }
-  // };
 
   if (loading || !user || !rehydrated) {
     return (

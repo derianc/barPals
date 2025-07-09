@@ -1,7 +1,5 @@
-import messaging from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
-import { Alert } from 'react-native';
 
 export function usePushNotificationListener() {
     Notifications.setNotificationHandler({

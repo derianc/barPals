@@ -9,7 +9,7 @@ export default ({ config }) => {
     ...config,
     name: suffix ? `BarPals ${suffix}` : 'BarPals',
     slug: 'BarPals',
-    version: '1.0.0',
+    version: '1.0.7',
     orientation: 'portrait',
     icon: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`, // optionally different icons
     scheme: 'myapp',
@@ -18,12 +18,14 @@ export default ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `com.derianc.BarPals${suffix}`,
+      buildNumber: '1.0.7',
+      runtimeVersion: 'stable',
       infoPlist: {
         UIBackgroundModes: ['location'],
         NSLocationWhenInUseUsageDescription: 'We need your location to show your activity.',
         NSLocationAlwaysAndWhenInUseUsageDescription:
           'We use your location to track background activity while you\'re out.',
-        ITSAppUsesNonExemptEncryption: false
+        ITSAppUsesNonExemptEncryption: false,
       }
     },
     android: {
@@ -32,6 +34,8 @@ export default ({ config }) => {
         foregroundImage: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`,
         backgroundColor: '#ffffff'
       },
+      "versionCode": 11,
+      runtimeVersion: 'stable',
       softwareKeyboardLayoutMode: 'pan',
       permissions: [
         'ACCESS_FINE_LOCATION',
@@ -88,6 +92,5 @@ export default ({ config }) => {
       fallbackToCacheTimeout: 0,
       checkAutomatically: "ON_LOAD"
     },
-    runtimeVersion: "1.0.0"
   };
 };

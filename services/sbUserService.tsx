@@ -19,16 +19,6 @@ export async function login(email: string, password: string) {
     password,
   });
 
-  // ✅ Save profile to local storage
-  try {
-    const profile = await getProfile()
-    console.log('saving profile to storage', JSON.stringify(profile, null, 2))
-    await AsyncStorage.setItem("STORAGE_KEY", JSON.stringify(profile));
-
-  } catch (storageError) {
-    console.warn("⚠️ Failed to save profile to storage:", storageError);
-  }
-
   return { authData: data, error };
 }
 

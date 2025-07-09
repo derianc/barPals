@@ -38,6 +38,7 @@ const ProfileCard = ({
   const scale = useSharedValue(1);
   const router = useRouter();
   const { user, rehydrated } = useUser();
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(allow_notifications);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -48,7 +49,7 @@ const ProfileCard = ({
   };
 
   const handleToggle = async () => {
-    const newValue = !allow_notifications;
+    const newValue = !notificationsEnabled;
 
     const { error } = await updateUserProfile(userId, {
       allow_notifications: newValue,
@@ -59,6 +60,7 @@ const ProfileCard = ({
       return;
     }
 
+    setNotificationsEnabled(newValue);
     onToggleNotifications?.(newValue);
   };
 
@@ -108,12 +110,21 @@ const ProfileCard = ({
           </HStack>
 
           <Switch
-            value={allow_notifications}
+            value={notificationsEnabled}
             onValueChange={handleToggle}
             trackColor={{ false: "#374151", true: "#6A11CB" }}
-            thumbColor={allow_notifications ? "#fff" : "#f4f4f5"}
+            thumbColor={notificationsEnabled ? "#fff" : "#f4f4f5"}
           />
         </HStack>
+
+        {__DEV__ && (
+          <View style={{ marginTop: 8 }}>
+            <TouchableOpacity onPress={sendTestNotification} style={styles.testButton}>
+              <AppText style={styles.testButtonText}>Send Test Notification</AppText>
+            </TouchableOpacity>
+          </View>
+        )}
+
       </AnimatedPressable>
 
       <View style={styles.logoutCard}>
@@ -197,7 +208,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#EF4444",
   },
-
+  testButton: {
+    backgroundColor: "#6A11CB",
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  testButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });
 
 export default ProfileCard;

@@ -15,7 +15,6 @@ export async function registerForFcmPushNotificationsAsync(userId: string) {
 
   const fcmToken = await messaging().getToken();
   console.log('✅ FCM Token:', fcmToken);
-  // return fcmToken;
 
   const { error: updateError } = await supabase
     .from("profiles")

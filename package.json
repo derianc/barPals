@@ -10,10 +10,11 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "local-dev": "npx expo start --tunnel",
-    "build-dev": "cross-env EAS_BUILD_PROFILE=development expo prebuild && eas build --profile development --platform android",
-    "build-preview": "cross-env EAS_BUILD_PROFILE=preview expo prebuild && eas build --profile preview --platform android",
-    "publish-preview": "eas update --branch preview",
-    "publish-dev": "eas update --branch dvelopment"
+    "bump": "node scripts/bump-version.js",
+    "build-dev": "yarn bump && cross-env EAS_BUILD_PROFILE=development expo prebuild && eas build --profile development --platform android",
+    "build-preview": "yarn bump && cross-env EAS_BUILD_PROFILE=preview expo prebuild && eas build --profile preview --platform android",
+    "publish-preview": "yarn bump && eas update --branch preview",
+    "publish-dev": "yarn bump && eas update --branch dvelopment"
   },
   "jest": {
     "preset": "jest-expo"
