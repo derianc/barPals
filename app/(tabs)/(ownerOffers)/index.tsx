@@ -2,8 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, FlatList, ActivityIndicator, RefreshControl } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Plus } from "lucide-react-native";
-
 import { useUser } from "@/contexts/userContext";
+import { useVenue } from "@/contexts/venueContex";
 import OfferCard from "@/components/screens/ownerOffer/offerCard";
 import { getOffersForVenue } from "@/services/sbOfferService";
 import { Fab, FabIcon } from "@/components/ui/fab";
@@ -12,14 +12,16 @@ import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader
 const OwnerOfferScreen = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // ✅ new
-  const { user } = useUser();
+  const [refreshing, setRefreshing] = useState(false);
+  const { selectedVenue } = useVenue(); // ✅ Grab selectedVenue from context
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useUser();
 
   const fetchOffers = async () => {
-    if (!user?.id) return;
-    const data = await getOffersForVenue(user.id);
+    if (!selectedVenue?.id || !user?.id) return;
+    
+    const data = await getOffersForVenue(user?.id, selectedVenue.id);
     setOffers(data || []);
   };
 
@@ -31,13 +33,13 @@ const OwnerOfferScreen = () => {
     };
 
     load();
-  }, [user, params.refresh]);
+  }, [selectedVenue?.id, params.refresh]); // ✅ depend on selectedVenue.id
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchOffers();
     setRefreshing(false);
-  }, [user]);
+  }, [selectedVenue?.id]);
 
   const handleCreateOffer = () => {
     router.push("./create");

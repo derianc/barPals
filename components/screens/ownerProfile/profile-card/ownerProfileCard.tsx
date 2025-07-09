@@ -11,18 +11,14 @@ import Animated, {
 } from "react-native-reanimated";
 import { Pressable } from "@/components/ui/pressable";
 import { Icon } from "@/components/ui/icon";
-import { Bell, LogOut } from "lucide-react-native";
+import { Bell, LogOut, MapPin } from "lucide-react-native";
 import { logout, updateUserProfile } from "@/services/sbUserService";
 import { useRouter } from "expo-router";
 import ModalDropdown from 'react-native-modal-dropdown';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
-import { useUser } from "@/contexts/userContext";
-
-interface Venue {
-    id: string;
-    name: string;
-}
+import { useVenue } from "@/contexts/venueContex";
+import { Venue } from "@/types/Venue";
 
 interface ProfileCardProps {
     userId: string;
@@ -44,23 +40,17 @@ const OwnerProfileCard = ({
     const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
     const scale = useSharedValue(1);
     const router = useRouter();
-    const [selectedVenueId, setSelectedVenueId] = useState<string>("");
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(allow_notifications);
+    const { selectedVenue, setSelectedVenue, allVenues, setAllVenues } = useVenue();
 
     useEffect(() => {
         if (venues.length > 0) {
-            const loadSelectedVenue = async () => {
-                const stored = await AsyncStorage.getItem("selectedVenueId");
-                setSelectedVenueId(stored || venues[0].id);
-            };
-            loadSelectedVenue();
+            setAllVenues(venues);
+            if (!selectedVenue) {
+                setSelectedVenue(venues[0]);
+            }
         }
     }, [venues]);
-
-    const handleVenueChange = async (venueId: string) => {
-        setSelectedVenueId(venueId);
-        await AsyncStorage.setItem("selectedVenueId", venueId);
-    };
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scale.value }],
@@ -127,23 +117,38 @@ const OwnerProfileCard = ({
             </AnimatedPressable>
 
             <View style={styles.venueDropdownContainer}>
-                <AppText style={styles.dropdownLabel}>Select Venue</AppText>
+                <AppText style={styles.dropdownLabel}>Your Venues</AppText>
+
                 <ModalDropdown
-                    options={venues.map((v) => v.name)}
-                    defaultValue={venues[0]?.name}
+                    options={allVenues.map((v) => v.name)}
+                    defaultValue={
+                        selectedVenue?.name && allVenues.find(v => v.name === selectedVenue.name)
+                            ? selectedVenue.name
+                            : allVenues[0]?.name ?? "Select a venue"
+                    }
                     style={styles.dropdown}
                     textStyle={styles.dropdownText}
                     dropdownStyle={styles.dropdownList}
-                    onSelect={(index, value) => {
+                    onSelect={(index) => {
                         const i = typeof index === "string" ? parseInt(index, 10) : index;
-                        if (!isNaN(i) && venues[i]) {
-                            handleVenueChange(venues[i].id);
+                        const venue = allVenues[i];
+                        if (venue) {
+                            setSelectedVenue(venue);
+                            console.log("🏪 Venue changed to:", venue.name);
                         }
                     }}
                     renderRow={(option, index, isSelected) => (
-                        <View key={String(index)} style={{ padding: 12 }}>
-                            <Text style={{ color: isSelected ? "#fff" : "#ccc" }}>{option}</Text>
-                        </View>
+                        <HStack
+                            style={[
+                                styles.dropdownRow,
+                                { backgroundColor: isSelected ? "#6A11CB" : "transparent" },
+                            ]}
+                        >
+                            <Icon as={MapPin} size="sm" color={isSelected ? "#fff" : "#ccc"} />
+                            <Text style={{ color: isSelected ? "#fff" : "#ccc", marginLeft: 8 }}>
+                                {option}
+                            </Text>
+                        </HStack>
                     )}
                 />
             </View>
@@ -259,7 +264,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#1F2937',
         borderRadius: 8,
     },
-
+    dropdownRow: {
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: "#374151",
+    },
 });
 
 export default OwnerProfileCard;

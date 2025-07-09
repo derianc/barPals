@@ -3,7 +3,7 @@ import { View, StyleSheet, Dimensions, ActivityIndicator, Button } from 'react-n
 import MapView, { Marker, Circle } from 'react-native-maps';
 import { useUser } from '@/contexts/userContext';
 import { useRouter } from 'expo-router';
-import { getVenueForUser, getVenueDetails } from "@/services/sbVenueService";
+import { useVenue } from '@/contexts/venueContex';
 
 import {
   subscribeToLocationInserts,
@@ -17,10 +17,10 @@ const RADIUS_METERS = 2000;
 
 const OwnerMapScreen = () => {
   const { user, rehydrated } = useUser();
-  const [venue, setVenue] = useState<any>(null);
   const [userLocations, setUserLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { selectedVenue } = useVenue();
 
   const fetchVenueAndLocations = async () => {
     console.log("🔄 fetchVenueAndLocations called");
@@ -33,14 +33,15 @@ const OwnerMapScreen = () => {
     }
 
     try {
-      const venueId = await getVenueForUser(user.id);
-      console.log(`🏢 Found venue_id: ${venueId}`);
+      if (!selectedVenue) {
+        console.warn("🚫 No selectedVenue available from context");
+        setLoading(false);
+        return;
+      }
 
-      const venueData = await getVenueDetails(venueId);
-      console.log("📍 Venue loaded:", venueData);
-      setVenue(venueData);
-
-      const locations = await getNearbyUserLocations(venueData.latitude, venueData.longitude, RADIUS_METERS, 5);
+      console.log("📍 Venue loaded from context:", selectedVenue);
+      console.log(`🧭 Fetching nearby user locations within ${RADIUS_METERS} meters of venue at (${selectedVenue.latitude}, ${selectedVenue.longitude})`);
+      const locations = await getNearbyUserLocations(selectedVenue.latitude, selectedVenue.longitude, RADIUS_METERS, 5);
       console.log(`🧭 Found ${locations.length} nearby user locations`);
       setUserLocations(locations);
 
@@ -52,8 +53,8 @@ const OwnerMapScreen = () => {
   };
 
   const refreshNearbyUsers = async () => {
-    if (!venue) return;
-    const data = await getNearbyUserLocations(venue.latitude, venue.longitude, RADIUS_METERS);
+    if (!selectedVenue) return;
+    const data = await getNearbyUserLocations(selectedVenue.latitude, selectedVenue.longitude, RADIUS_METERS);
     setUserLocations(data);
   };
 
@@ -96,8 +97,8 @@ const OwnerMapScreen = () => {
     }
   }, [rehydrated, user]);
 
-  if (!rehydrated || loading || !venue) {
-    console.log(`⏳ Loading state: loading=${loading}, venue=${!!venue}`);
+  if (!rehydrated || loading || !selectedVenue) {
+    console.log(`⏳ Loading state: loading=${loading}, venue=${!!selectedVenue}`);
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" />
@@ -112,19 +113,19 @@ const OwnerMapScreen = () => {
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: venue.latitude,
-          longitude: venue.longitude,
+          latitude: selectedVenue.latitude,
+          longitude: selectedVenue.longitude,
           latitudeDelta: 0.02,
           longitudeDelta: 0.02,
         }}
       >
         <Marker
-          coordinate={{ latitude: venue.latitude, longitude: venue.longitude }}
-          title={venue.name}
+          coordinate={{ latitude: selectedVenue.latitude, longitude: selectedVenue.longitude }}
+          title={selectedVenue.name}
           pinColor="blue"
         />
         <Circle
-          center={{ latitude: venue.latitude, longitude: venue.longitude }}
+          center={{ latitude: selectedVenue.latitude, longitude: selectedVenue.longitude }}
           radius={RADIUS_METERS}
           fillColor="rgba(0,150,255,0.2)"
           strokeColor="rgba(0,150,255,0.5)"
@@ -141,10 +142,10 @@ const OwnerMapScreen = () => {
 
       {__DEV__ && (
         <View style={{ position: 'absolute', bottom: 40, left: 20, gap: 10 }}>
-          {venue && (
+          {selectedVenue && (
             <Button
               title="Create Nearby"
-              onPress={() => simulateUserMovementNearVenue(venue, 15)}
+              onPress={() => simulateUserMovementNearVenue(selectedVenue, 15)}
             />
           )}
           <Button

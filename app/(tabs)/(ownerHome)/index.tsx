@@ -11,6 +11,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
 import { useUser } from "@/contexts/userContext";
+import { useVenue } from "@/contexts/venueContex";
 
 import {
   getCurrentAndPreviousTotalVenueSpend,
@@ -69,30 +70,23 @@ const OwnerHome = () => {
   const [spendData, setSpendData] = useState<SpendBucket[]>([]);
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
   const { user } = useUser();
-  const [venueHash, setVenueHash] = useState<string | null>(null);
+  const { selectedVenue } = useVenue();
 
   useEffect(() => {
-    if (user?.id) {
-      getSelectedVenueHash({ userId: user.id }).then(setVenueHash);
+    if (selectedVenue?.venue_hash) {
+      loadOwnerHomeData(selectedVenue.venue_hash);
     }
-  }, [user?.id]);
-
-
-  useEffect(() => {
-    if (venueHash) {
-      loadOwnerHomeData();
-    }
-  }, [timeframe, venueHash]);
+  }, [timeframe, selectedVenue?.venue_hash]);
 
   useFocusEffect(
     useCallback(() => {
-      if (venueHash) {
-        loadOwnerHomeData();
+      if (selectedVenue?.venue_hash) {
+        loadOwnerHomeData(selectedVenue.venue_hash);
       }
-    }, [timeframe, venueHash])
+    }, [timeframe, selectedVenue?.venue_hash])
   );
 
-  async function loadOwnerHomeData() {
+  async function loadOwnerHomeData(venueHash: string) {
     if (!venueHash) return;
 
     const { start, end } = getDateRange(timeframe);

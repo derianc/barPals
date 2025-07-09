@@ -8,10 +8,11 @@ import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold, } from "@expo-goog
 import { ThemeProvider, ThemeContext, ThemeContextType } from "@/contexts/theme-context";
 import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { UserContext, UserProvider } from "@/contexts/userContext";
+import { UserContext, UserProvider, useUser } from "@/contexts/userContext";
 import { LocationTracker } from "@/components/locationTracker";
 import { NotificationHandler } from "@/components/notifications/NotificationHandler";
 import * as Notifications from 'expo-notifications';
+import { VenueProvider } from "@/contexts/venueContex";
 
 const LayoutInner = () => {
   const publicRoutes = ["/login", "/signup", "/"];
@@ -19,6 +20,7 @@ const LayoutInner = () => {
   const { user, rehydrated } = useContext(UserContext);
   const router = useRouter();
   const pathname = usePathname();
+  
 
   const [fontsLoaded] = useFonts({
     "dm-sans-regular": DMSans_400Regular,
@@ -66,7 +68,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <UserProvider>
-          <LayoutInner />
+          <VenueProvider>
+            <LayoutInner />
+          </VenueProvider>
         </UserProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

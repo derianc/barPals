@@ -1,16 +1,19 @@
 import { supabase } from "@/supabase";
-
-export interface Venue {
-  id: string;
-  name: string;
-  address: string;
-  venueHash: string;
-}
+import { Venue } from "@/types/Venue";
 
 export async function getVenuesForProfile(userId: string): Promise<Venue[]> {
   const { data, error } = await supabase
     .from("venue_users")
-    .select("venue:venue_id(id, name, address_line1, venue_hash)")
+    .select(`
+    venue_id (
+      id,
+      name,
+      address_line1,
+      venue_hash,
+      latitude,
+      longitude
+    )
+  `)
     .eq("profile_id", userId);
 
   if (error) {
@@ -19,10 +22,12 @@ export async function getVenuesForProfile(userId: string): Promise<Venue[]> {
   }
 
   return (data ?? []).map((row: any) => ({
-    id: row.venue.id,
-    name: row.venue.name,
-    address: row.venue.address_line1,
-    venueHash: row.venue.venue_hash,
+    id: row.venue_id.id,
+    name: row.venue_id.name,
+    address: row.venue_id.address_line1,
+    venue_hash: row.venue_id.venue_hash,
+    latitude: row.venue_id.latitude,
+    longitude: row.venue_id.longitude,
   }));
 }
 

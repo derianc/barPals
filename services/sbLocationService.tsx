@@ -104,7 +104,7 @@ export async function getNearbyUserLocations(
   });
 
   if (error) {
-    console.error("❌ Failed to fetch nearby locations:", error.message);
+    console.error("❌ Failed to fetch nearby user locations:", error.message);
     return [];
   }
 
