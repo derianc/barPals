@@ -9,7 +9,7 @@ export default ({ config }) => {
     ...config,
     name: suffix ? `BarPals ${suffix}` : 'BarPals',
     slug: 'BarPals',
-    version: '1.0.9',
+    version: '1.0.13',
     orientation: 'portrait',
     icon: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`, // optionally different icons
     scheme: 'myapp',
@@ -18,7 +18,7 @@ export default ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `com.derianc.BarPals${suffix}`,
-      buildNumber: '1.0.9',
+      buildNumber: '1.0.13',
       runtimeVersion: 'stable',
       infoPlist: {
         UIBackgroundModes: ['location'],
@@ -34,20 +34,26 @@ export default ({ config }) => {
         foregroundImage: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`,
         backgroundColor: '#ffffff'
       },
-      "versionCode": 13,
+      "versionCode": 17,
       runtimeVersion: 'stable',
       softwareKeyboardLayoutMode: 'pan',
       permissions: [
         'ACCESS_FINE_LOCATION',
         'ACCESS_COARSE_LOCATION',
         'ACCESS_BACKGROUND_LOCATION',
-        'FOREGROUND_SERVICE'
+        'FOREGROUND_SERVICE',
+        'INTERNET',
       ],
+      useNextNotificationsApi: true,
+      config: {
+        // allow HTTP if you later test with local endpoints
+        cleartextTrafficPermitted: true,
+      },
       googleServicesFile: './android/app/google-services.json',
       useNextNotificationsApi: true,
       config: {
         googleMaps: {
-          apiKey: "AIzaSyCi-LcFua4tTjLm9RUMKDiZLwFkuoRovqQ"
+          apiKey: "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
         }
       },
     },
@@ -83,6 +89,7 @@ export default ({ config }) => {
     },
     extra: {
       router: {},
+      openCageApiKey: "cb523e69e8784a14a5449c7af9b02715",
       eas: {
         projectId: '3eb1d1ef-354b-4f58-9fa2-4d48436aa58d'
       }

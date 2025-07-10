@@ -8,7 +8,8 @@ import {
   Alert,
   Text,
   TextInput,
-  Switch
+  Switch,
+  Pressable
 } from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
@@ -17,8 +18,11 @@ import { Camera } from "lucide-react-native";
 import { Icon } from "@/components/ui/icon";
 import { Calendar, Bell } from "lucide-react-native";
 import OwnerProfileCard from "@/components/screens/ownerProfile/profile-card/ownerProfileCard";
-import { getVenuesForProfile, Venue } from "@/services/sbVenueService";
+import { getVenuesForProfile } from "@/services/sbVenueService";
 import { useUser } from "@/contexts/userContext";
+import { Venue } from "@/types/Venue";
+import { router } from "expo-router";
+import { Text as AppText } from "@/components/ui/text";
 
 const OwnerProfileDetails = () => {
   const [loading, setLoading] = useState(true);

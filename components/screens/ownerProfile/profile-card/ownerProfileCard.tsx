@@ -11,7 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Pressable } from "@/components/ui/pressable";
 import { Icon } from "@/components/ui/icon";
-import { Bell, LogOut, MapPin } from "lucide-react-native";
+import { Bell, LogOut, MapPin, Store } from "lucide-react-native";
 import { logout, updateUserProfile } from "@/services/sbUserService";
 import { useRouter } from "expo-router";
 import ModalDropdown from 'react-native-modal-dropdown';
@@ -116,6 +116,17 @@ const OwnerProfileCard = ({
                 </HStack>
             </AnimatedPressable>
 
+            <View style={styles.registerCard}>
+                <Pressable onPress={() => router.push("/(tabs)/(ownerRegisterVenue)")}>
+                    <HStack style={styles.row}>
+                        <View style={styles.iconContainer}>
+                            <Icon as={Store} size="sm" color="#fff" />
+                        </View>
+                        <AppText style={styles.label}>Register New Venue</AppText>
+                    </HStack>
+                </Pressable>
+            </View>
+
             <View style={styles.venueDropdownContainer}>
                 <AppText style={styles.dropdownLabel}>Your Venues</AppText>
 
@@ -152,7 +163,7 @@ const OwnerProfileCard = ({
                     )}
                 />
             </View>
-
+            
             <View style={styles.logoutCard}>
                 <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                     <HStack style={{ alignItems: "center" }}>
@@ -270,6 +281,35 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: "#374151",
     },
+    registerCard: {
+        backgroundColor: "#1E293B",   // same card background
+        borderRadius: 16,
+        marginHorizontal: 20,
+        marginTop: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+
+    row: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+
+    iconContainer: {
+        backgroundColor: "#3B82F6",  // consistent blue accent
+        padding: 8,
+        borderRadius: 10,
+        marginRight: 12,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    label: {
+        fontSize: 16,
+        color: "#F8FAFC",
+        fontWeight: "500",
+    },
+
 });
 
 export default OwnerProfileCard;

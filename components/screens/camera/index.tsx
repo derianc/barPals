@@ -102,7 +102,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
       // 3) Call analyzeReceipt(documentUrl: string)
       const analysisResult = await analyzeReceipt(publicUrl);
-
+      
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = await extractReceiptDetails(analysisResult, publicUrl);
 

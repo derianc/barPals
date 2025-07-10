@@ -1,7 +1,7 @@
 import { supabase } from "@/supabase";
-import * as Crypto from "expo-crypto";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
+import { generateVenueHash, sanitizeAddress, sanitizeText } from "@/utilities";
 
 export * from './sbUserReceiptService'
 export * from './sbOwnerReceiptService'
@@ -28,8 +28,11 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 
 export async function insertReceiptDetails(userId: string, receiptData: TransactionData): Promise<boolean> {
   
-  // 1. Insert into user_receipts
-  const venueHash = await generateVenueHash(sanitizeText(receiptData.merchantAddress) ?? "");
+  // 1. Insert into user_receipts.
+  var sanitizedAddress = sanitizeAddress(receiptData.merchantAddress);
+  console.log("sanitizedAddress", sanitizedAddress);
+
+  const venueHash = await generateVenueHash(sanitizedAddress ?? "");
 
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
@@ -177,11 +180,6 @@ export async function archiveReceiptById(receiptId: number): Promise<{ success: 
   return { success: true };
 }
 
-function sanitizeText(input?: string | null): string | null {
-  if (!input) return null;
-  return input.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
-}
-
 function parseDate(raw: string | null | undefined): string | null {
   if (!raw) return null;
 
@@ -206,14 +204,4 @@ function parseDate(raw: string | null | undefined): string | null {
   }
 
   return `${year}-${month}-${day}`; // YYYY-MM-DD
-}
-
-export async function generateVenueHash(address: string): Promise<string> {
-  const noSpaces = address.replace(/\s+/g, "");
-  const addressHash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    noSpaces
-  );
-
-  return addressHash;
 }

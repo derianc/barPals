@@ -35,6 +35,31 @@ type VenueJoinResult = {
   venue: { venue_hash: string } | { venue_hash: string }[]; // handles both array and object
 };
 
+
+export async function uploadVenueImage(file: File, path: string) {
+  const { error } = await supabase.storage.from("venue-assets").upload(path, file, {
+    upsert: true,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("venue-assets").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function createVenueWithOwner(venueData: any, ownerId: string) {
+  const { data, error } = await supabase.from("venues").insert([venueData]).select("id");
+  if (error) throw error;
+  const venueId = data[0].id;
+
+  const vuRes = await supabase.from("venue_users").insert({
+    profile_id: ownerId,
+    venue_id: venueId,
+    role: "owner",
+  });
+
+  if (vuRes.error) throw vuRes.error;
+  return venueId;
+}
+
 export async function getSelectedVenueHash({
   userId,
   venueId,
