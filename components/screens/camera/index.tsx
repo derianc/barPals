@@ -7,7 +7,6 @@ import {
   Image,
   Text,
 } from "react-native";
-import { Camera, CameraView } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 import { analyzeReceipt } from "@/services/formRecognizerService";
 import {
@@ -25,14 +24,19 @@ import { format, parse, isValid } from "date-fns";
 import { useUser } from "@/contexts/userContext";
 import { findVenueByHash } from "@/services/sbVenueService";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
+
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
 };
 
+type FlashMode = 'off' | 'on' | 'auto';
+
 export default function CameraComponent({ onCapture }: CameraViewProps) {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [cameraRef, setCameraRef] = useState<any | null>(null);
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const [flash, setFlash] = useState<FlashMode>('off'); 
+  const cameraRef = useRef<Camera | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const bottomSheetRef = useRef<any>(null);
@@ -40,28 +44,26 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   const [bottomSheetText, setBottomText] = useState("Receipt Upload Failed");
   const [bottomSheetSuccess, setBottomSuccess] = useState(false);
   const isFocused = useIsFocused();
-  const handleCameraRef = useCallback((ref: any) => {
-    if (ref) setCameraRef(ref);
-  }, []);
+  const devices = useCameraDevices();
+  const device = devices.find((d) => d.position === 'back');
+  const [torch, setTorch] = useState<'on' | 'off'>('off');
+
 
   const { user } = useUser();
 
   useFocusEffect(
-    React.useCallback(() => {
-      let isActive = true;
-
-      const requestPermission = async () => {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        if (isActive) {
-          setHasPermission(status === "granted");
+      React.useCallback(() => {
+      (async () => {
+        const permission = await requestPermission();
+        if (!permission) {
+          console.log('Camera permission denied');
         }
-      };
+      })();
 
       requestPermission();
 
       return () => {
-        isActive = false;
-        setCameraRef(null);     // Clean up cameraRef on unfocus
+        // setCameraRef(null);     // Clean up cameraRef on unfocus
         setPhotoUri(null);      // Optionally reset preview
       };
     }, [])
@@ -96,7 +98,12 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   };
 
   const handleCapture = async () => {
-    if (!cameraRef) return;
+    console.log('taking picture');
+    
+    if (!cameraRef.current) {
+      console.warn("❌ Camera ref not available");
+      return;
+    }
 
     if (!user?.id) {
       console.warn("⚠️ No user found — skipping insert.");
@@ -105,23 +112,23 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
     try {
       // 1) Take picture (no base64; we'll upload the file itself)
-      const photo = await cameraRef.takePictureAsync({
-        base64: false,
-        quality: 0.8,
+      const photo = await cameraRef.current.takePhoto({
+        flash: flash,
       });
-      onCapture(photo.uri);
-      if (!photo.uri) return;
+      if (!photo.path) return;
 
       // Show preview immediately
-      setPhotoUri(photo.uri);
+      const fileUri = `file://${photo.path}`;
+      onCapture(fileUri);
+      setPhotoUri(fileUri);
       setLoading(true);
 
       // 2) Upload local file to storage → get public URL
-      const publicUrl = await uploadReceipt(photo.uri, "user-receipts");
+      const publicUrl = await uploadReceipt(fileUri, "user-receipts");
 
       // 3) Call analyzeReceipt(documentUrl: string)
       const analysisResult = await analyzeReceipt(publicUrl);
-      
+
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = await extractReceiptDetails(analysisResult, publicUrl);
 
@@ -133,7 +140,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
         bottomSheetRef.current?.open();
         return;
       }
-      
+
       // 4.5) Duplicate check
       const isDuplicate = await isReceiptDuplicate(txData);
       if (isDuplicate) {
@@ -283,7 +290,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     return "";
   }
 
-  async function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string):  Promise<TransactionData> {
+  async function extractReceiptDetails(receipt: AnalyzeResult<AnalyzedDocument> | undefined, imageUrl: string): Promise<TransactionData> {
     if (!receipt || !receipt.documents || receipt.documents.length === 0) {
       throw new Error("Invalid receipt data.");
     }
@@ -346,18 +353,33 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
   return (
     <View style={styles.container}>
-      {isFocused && hasPermission === true && (
-        <CameraView
-          style={styles.camera}
-          ref={handleCameraRef}
-        >
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
-              <Ionicons name="camera" size={36} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </CameraView>
+      {device && isFocused && hasPermission === true && (
+        <Camera
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          device={device}
+          isActive={isFocused}
+          photo={true}
+          torch={torch}
+        />
       )}
+
+      {/* 🔦 Flash Button */}
+      <View style={styles.flashButtonContainer}>
+        <TouchableOpacity
+          onPress={() => setTorch(prev => (prev === 'on' ? 'off' : 'on'))}
+          style={styles.flashButton}
+        >
+          <Ionicons name={torch ? 'flashlight' : 'flashlight-outline'} size={28} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* 📸 Capture Button */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+          <Ionicons name="camera" size={36} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
       <RBSheet
         ref={bottomSheetRef}
@@ -399,17 +421,23 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 }
 
 const styles = StyleSheet.create({
+  cameraContainer: {
+    flex: 1,
+    position: 'relative',
+  },
   container: {
-    flex: 1
+    flex: 1,
+    position: 'relative',
+    backgroundColor: 'black'
   },
   camera: {
     flex: 1
   },
   buttonContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "center",
-    marginBottom: 20,
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    zIndex: 10,
   },
   previewContainer: {
     flex: 1,
@@ -437,6 +465,17 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
+  },
+  flashButtonContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    zIndex: 10,
+  },
+  flashButton: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 20,
+    padding: 8,
   },
   bottomSheet: {
     position: "absolute",

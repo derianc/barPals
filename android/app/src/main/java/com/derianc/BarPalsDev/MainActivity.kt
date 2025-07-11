@@ -1,4 +1,4 @@
-package com.derianc.BarPalsPreview
+package com.derianc.BarPalsDev
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
