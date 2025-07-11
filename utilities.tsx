@@ -1,10 +1,16 @@
 import * as Crypto from "expo-crypto";
 
 export async function generateVenueHash(address: string): Promise<string> {
-  const noSpaces = address.replace(/\s+/g, "");
+  const cleaned = sanitizeText(address) ?? ""; // remove \n, control chars, etc.
+  const normalized = normalizeAddressAbbreviations(cleaned); // convert St, E, etc.
+  console.log("normalized before hash:", normalized);
+
+  const sanitized = sanitizeAddress(normalized) ?? ""; // final lowercase, alphanumeric
+  console.log("sanitized before hash:", sanitized);
+
   const addressHash = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
-    noSpaces
+    sanitized
   );
 
   return addressHash;
@@ -25,3 +31,71 @@ export function sanitizeAddress(input?: string | null): string | null {
     .replace(/[^a-zA-Z0-9]/g, '')                // Keep only letters and numbers
     .toLocaleLowerCase();
 }
+
+function normalizeAddressAbbreviations(address: string): string {
+  const directions: { [key: string]: string } = {
+    "northeast": "NE",
+    "northwest": "NW",
+    "southeast": "SE",
+    "southwest": "SW",
+    "north": "N",
+    "south": "S",
+    "east": "E",
+    "west": "W",
+  };
+
+  const suffixes: { [key: string]: string } = {
+    "street": "St",
+    "avenue": "Ave",
+    "boulevard": "Blvd",
+    "place": "Pl",
+    "road": "Rd",
+    "drive": "Dr",
+    "court": "Ct",
+    "lane": "Ln",
+    "terrace": "Ter",
+    "trail": "Trl",
+    //"parkway": "Pkwy",
+    "commons": "Cmns",
+  };
+
+  const states: { [key: string]: string } = {
+    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR",
+    "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE",
+    "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL",
+    "Indiana": "IN", "Iowa": "IA", "Kansas": "KS", "Kentucky": "KY", "Louisiana": "LA",
+    "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA", "Michigan": "MI",
+    "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT",
+    "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ",
+    "New Mexico": "NM", "New York": "NY", "North Carolina": "NC",
+    "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK", "Oregon": "OR",
+    "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT",
+    "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV",
+    "Wisconsin": "WI", "Wyoming": "WY",
+  };
+
+  let normalized = address;
+
+  // Normalize directions (case-insensitive)
+  for (const [full, abbr] of Object.entries(directions)) {
+    const regex = new RegExp(`\\b${full}\\b`, 'gi');
+    normalized = normalized.replace(regex, abbr);
+  }
+
+  // Normalize suffixes
+  for (const [full, abbr] of Object.entries(suffixes)) {
+    const regex = new RegExp(`\\b${full}\\b`, 'gi');
+    normalized = normalized.replace(regex, abbr);
+  }
+
+  // Normalize state names to abbreviations
+  for (const [full, abbr] of Object.entries(states)) {
+    const regex = new RegExp(`\\b${full}\\b`, 'gi');
+    normalized = normalized.replace(regex, abbr);
+  }
+
+  return normalized;
+}
+
+

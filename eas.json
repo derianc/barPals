@@ -7,7 +7,11 @@
     "development": {
       "channel": "development",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
+        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
+      }
     },
     "preview": {
       "channel": "preview",
@@ -17,12 +21,20 @@
       },
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
+        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
       }
     },
     "production": {
       "channel": "production",
       "autoIncrement": true,
-      "distribution": "store"
+      "distribution": "store",
+      "env": {
+        "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
+        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
+      }
     }
   },
   "submit": {

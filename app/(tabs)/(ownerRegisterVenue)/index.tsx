@@ -5,6 +5,7 @@ import {
   Alert,
   Image,
   View,
+  Text,
   StyleSheet,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
@@ -17,7 +18,38 @@ import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader
 import { useUser } from "@/contexts/userContext";
 import { geocodeAddress } from "@/services/geocodingService";
 import { uploadVenueImage, createVenueWithOwner } from "@/services/sbVenueService";
-import { generateVenueHash, sanitizeAddress, sanitizeText } from "@/utilities";
+import { generateVenueHash, sanitizeAddress, } from "@/utilities";
+import { GooglePlacesAutocomplete, PlaceType } from 'react-native-google-places-autocomplete';
+import Constants from 'expo-constants';
+import AddressAutocompleteInput from "@/components/AddressAutoCompleteInput/AddressAutoCompleteInput";
+
+type SuggestionProps = {
+  data: any;
+  index: number;
+};
+
+const AddressSuggestionRow = ({ data }: SuggestionProps) => {
+  const main = data?.structured_formatting?.main_text;
+  const secondary = data?.structured_formatting?.secondary_text;
+
+  if (!main) {
+    return (
+      <View style={{ padding: 12 }}>
+        <Text style={{ color: "#F87171" }}>Invalid suggestion</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ padding: 12 }}>
+      <Text style={{ color: "#F8FAFC", fontWeight: "600" }}>{main}</Text>
+      {secondary ? (
+        <Text style={{ color: "#94A3B8" }}>{secondary}</Text>
+      ) : null}
+    </View>
+  );
+};
+
 
 const RegisterVenueScreen = () => {
   const [name, setName] = useState("Test Store");
@@ -32,6 +64,8 @@ const RegisterVenueScreen = () => {
   const [logo, setLogo] = useState<any>(null);
   const [cover, setCover] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const { user } = useUser();
 
@@ -45,16 +79,32 @@ const RegisterVenueScreen = () => {
     }
   };
 
+  const resetForm = () => {
+    setName("");
+    setAddress("");
+    setCity("");
+    setState("");
+    setPostalCode("");
+    setPhone("");
+    setEmail("");
+    setWebsite("");
+    setLogo(null);
+    setCover(null);
+    setLatitude(null);
+    setLongitude(null);
+  };
+
   const handleSubmit = async () => {
     if (!name || !address || !city || !state || !postalCode) {
       Alert.alert("Missing Fields", "Please fill out all required fields.");
       return;
     }
-
-    if (!user) {
-      console.log("Error", "You must be logged in to register a venue.");
+    if (latitude === null || longitude === null) {
+      Alert.alert("Location Error", "Could not resolve coordinates for address.");
       return;
     }
+
+    if (!user?.id) return;
 
     setSubmitting(true);
 
@@ -63,8 +113,8 @@ const RegisterVenueScreen = () => {
       const coords = await geocodeAddress(fullAddress);
       if (!coords) throw new Error("Geocoding failed.");
 
-      var sanitizedAddress = sanitizeAddress(fullAddress);
-      const venueHash = await generateVenueHash(sanitizedAddress ?? "");
+      const venueHash = await generateVenueHash(fullAddress ?? "");
+      console.log("🔑 Venue registration hash:", venueHash);
 
       let logoUrl = "";
       let coverUrl = "";
@@ -94,8 +144,8 @@ const RegisterVenueScreen = () => {
         phone,
         email,
         website_url: website,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
+        latitude,
+        longitude,
         logo_url: logoUrl,
         cover_image_url: coverUrl,
         venue_hash: venueHash,
@@ -104,8 +154,7 @@ const RegisterVenueScreen = () => {
       await createVenueWithOwner(venueData, user?.id);
 
       Alert.alert("Success", "Venue registered successfully.");
-      setName(""); setAddress(""); setCity(""); setState(""); setPostalCode(""); setPhone(""); setEmail(""); setWebsite("");
-      setLogo(null); setCover(null);
+      resetForm();
     } catch (err: any) {
       console.error(err);
       Alert.alert("Error", err.message || "Venue registration failed.");
@@ -119,27 +168,35 @@ const RegisterVenueScreen = () => {
       <OwnerOfferHeader />
       <View style={styles.container}>
         <VStack space="lg">
-          {[
-            { label: "Venue Name", val: name, set: setName },
-            { label: "Address Line 1", val: address, set: setAddress },
-            { label: "City", val: city, set: setCity },
-            { label: "State", val: state, set: setState },
-            { label: "Postal Code", val: postalCode, set: setPostalCode },
-            { label: "Phone", val: phone, set: setPhone },
-            { label: "Email", val: email, set: setEmail },
-            { label: "Website", val: website, set: setWebsite },
-          ].map(({ label, val, set }, i) => (
-            <View key={i} style={styles.inputGroup}>
-              <AppText style={styles.label}>{label}</AppText>
-              <TextInput
-                value={val}
-                onChangeText={set}
-                style={styles.input}
-                placeholder={`Enter ${label}`}
-                placeholderTextColor="#64748B"
-              />
-            </View>
-          ))}
+          {/* Venue Name */}
+          <View style={styles.inputGroup}>
+            <AppText style={styles.label}>Venue Name</AppText>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+              placeholder="Enter Venue Name"
+              placeholderTextColor="#64748B"
+            />
+          </View>
+
+          {/* Autocomplete Address Field */}
+          <View style={styles.inputGroup}>
+            <AppText style={styles.label}>Address</AppText>
+            <AddressAutocompleteInput
+              onSelect={(item) => {
+                const c = item.components;
+                setAddress(`${c.house_number ?? ""} ${c.road ?? ""}`.trim());
+                setCity(c.city || c.town || c.village || "");
+                setState(c.state || "");
+                setPostalCode(c.postcode || "");
+                setLatitude(item.lat);
+                setLongitude(item.lng);
+              }}
+            />
+          </View>
+
+
 
           {/* Logo Upload */}
           <Pressable onPress={() => pickImage(setLogo)} style={styles.imageUpload}>

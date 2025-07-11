@@ -1,4 +1,4 @@
-import { runtimeVersion } from "expo-updates";
+import 'dotenv/config';
 
 export default ({ config }) => {
   const profile = process.env.EAS_BUILD_PROFILE;
@@ -9,7 +9,7 @@ export default ({ config }) => {
     ...config,
     name: suffix ? `BarPals ${suffix}` : 'BarPals',
     slug: 'BarPals',
-    version: '1.0.13',
+    version: '1.0.19',
     orientation: 'portrait',
     icon: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`, // optionally different icons
     scheme: 'myapp',
@@ -18,7 +18,7 @@ export default ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `com.derianc.BarPals${suffix}`,
-      buildNumber: '1.0.13',
+      buildNumber: '1.0.19',
       runtimeVersion: 'stable',
       infoPlist: {
         UIBackgroundModes: ['location'],
@@ -34,7 +34,7 @@ export default ({ config }) => {
         foregroundImage: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`,
         backgroundColor: '#ffffff'
       },
-      "versionCode": 17,
+      "versionCode": 23,
       runtimeVersion: 'stable',
       softwareKeyboardLayoutMode: 'pan',
       permissions: [
@@ -53,7 +53,7 @@ export default ({ config }) => {
       useNextNotificationsApi: true,
       config: {
         googleMaps: {
-          apiKey: "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
+          apiKey: process.env.GOOGLE_PLACES_API_KEY
         }
       },
     },
@@ -89,7 +89,8 @@ export default ({ config }) => {
     },
     extra: {
       router: {},
-      openCageApiKey: "cb523e69e8784a14a5449c7af9b02715",
+      googlePlacesApiKey: process.env.GOOGLE_PLACES_API_KEY,
+      openCageApiKey: process.env.OPEN_CAGE_API_KEY,
       eas: {
         projectId: '3eb1d1ef-354b-4f58-9fa2-4d48436aa58d'
       }

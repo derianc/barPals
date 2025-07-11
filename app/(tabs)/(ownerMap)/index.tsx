@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, StyleSheet, Dimensions, ActivityIndicator, Button } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useUser } from '@/contexts/userContext';
 import { useRouter } from 'expo-router';
 import { useVenue } from '@/contexts/venueContex';
@@ -21,6 +21,7 @@ const OwnerMapScreen = () => {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { selectedVenue } = useVenue();
+  const mapRef = useRef<MapView>(null);
 
   const fetchVenueAndLocations = async () => {
     console.log("🔄 fetchVenueAndLocations called");
@@ -97,6 +98,21 @@ const OwnerMapScreen = () => {
     }
   }, [rehydrated, user]);
 
+  useEffect(() => {
+    if (selectedVenue && mapRef.current) {
+      const region = {
+        latitude: selectedVenue.latitude,
+        longitude: selectedVenue.longitude,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      };
+
+      console.log("📍 Venue changed, updating map region and user locations");
+      mapRef.current.animateToRegion(region, 1000);
+      fetchVenueAndLocations();
+    }
+  }, [selectedVenue]);
+
   if (!rehydrated || loading || !selectedVenue) {
     console.log(`⏳ Loading state: loading=${loading}, venue=${!!selectedVenue}`);
     return (
@@ -111,6 +127,8 @@ const OwnerMapScreen = () => {
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
           latitude: selectedVenue.latitude,

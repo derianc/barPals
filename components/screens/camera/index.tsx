@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   TouchableOpacity,
@@ -23,7 +23,8 @@ import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
 import { format, parse, isValid } from "date-fns";
 import { useUser } from "@/contexts/userContext";
-import { findVenueByAddress } from "@/services/sbVenueService";
+import { findVenueByHash } from "@/services/sbVenueService";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -38,15 +39,33 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   const [bottomSheetHeader, setBottomHeader] = useState("Failed");
   const [bottomSheetText, setBottomText] = useState("Receipt Upload Failed");
   const [bottomSheetSuccess, setBottomSuccess] = useState(false);
+  const isFocused = useIsFocused();
+  const handleCameraRef = useCallback((ref: any) => {
+    if (ref) setCameraRef(ref);
+  }, []);
 
   const { user } = useUser();
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === "granted");
-    })();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      let isActive = true;
+
+      const requestPermission = async () => {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        if (isActive) {
+          setHasPermission(status === "granted");
+        }
+      };
+
+      requestPermission();
+
+      return () => {
+        isActive = false;
+        setCameraRef(null);     // Clean up cameraRef on unfocus
+        setPhotoUri(null);      // Optionally reset preview
+      };
+    }, [])
+  );
 
   const isReceiptValid = (txData: TransactionData | undefined): boolean => {
     if (!txData) {
@@ -225,6 +244,11 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     console.log("🧼 Normalized timeString:", cleaned);
 
     const knownTimeFormats = [
+      "h:mm:ssa",     // e.g., 2:54:33pm
+      "h:mma",        // e.g., 2:54pm
+      "hh:mma",       // e.g., 02:54pm
+      "hmmssa",
+      "hmm a",
       "h:mm:ss a",
       "h:mm a",
       "hh:mm:ss a",
@@ -232,9 +256,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       "H:mm:ss",
       "H:mm",
       "HHmmss",
-      "hmmssa",
-      "hmm a",
-      "h:mm:ssa",
       "MMMM d yyyy",
       "d MMMM yyyy",
       "d MMM yyyy",
@@ -287,9 +308,9 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     // Lookup venue name if merchantName is blank but address is provided
     console.log("🔍 Merchant Name:", merchantName);
     if (!merchantName && merchantAddress) {
-      console.log("🔍 Merchant Address provided, looking up venue by address:", merchantAddress);
-      const venue = await findVenueByAddress(merchantAddress);
-      console.log("🔍 Found venue by address:", venue);
+      console.log("🔍 Merchant Address provided, looking up venue by address hash:", merchantAddress);
+      const venue = await findVenueByHash(merchantAddress); // merchant address will be hashed in service call
+      console.log("🔍 Found venue by address hash:", venue);
       if (venue?.name) {
         merchantName = venue.name;
       }
@@ -311,11 +332,13 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       transaction: "",
       duplicateKey: "",
 
-      Items: items.values.map((item: any): TransactionItem => ({
-        item_name: item.properties?.Description?.content || "Unknown Item",
-        quantity: item.properties?.Quantity?.content || "1",
-        price: formatPrice(item.properties?.TotalPrice?.content) || 0,
-      }))
+      Items: Array.isArray(items?.values)
+        ? items.values.map((item: any): TransactionItem => ({
+          item_name: item.properties?.Description?.content || "Unknown Item",
+          quantity: item.properties?.Quantity?.content || "1",
+          price: formatPrice(item.properties?.TotalPrice?.content) || 0,
+        }))
+        : [],
     };
 
     return tx;
@@ -323,13 +346,18 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} ref={(ref: any) => setCameraRef(ref)}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
-            <Ionicons name="camera" size={36} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      {isFocused && hasPermission === true && (
+        <CameraView
+          style={styles.camera}
+          ref={handleCameraRef}
+        >
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.captureButton} onPress={handleCapture}>
+              <Ionicons name="camera" size={36} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </CameraView>
+      )}
 
       <RBSheet
         ref={bottomSheetRef}

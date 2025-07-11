@@ -1,5 +1,6 @@
 import { supabase } from "@/supabase";
 import { Venue } from "@/types/Venue";
+import { generateVenueHash, sanitizeText } from "@/utilities";
 
 export async function getVenuesForProfile(userId: string): Promise<Venue[]> {
   const { data, error } = await supabase
@@ -129,24 +130,28 @@ export async function getVenueDetails(venueId: string) {
   return data;
 }
 
-export async function findVenueByAddress(fullAddress: string) {
-  const { address_line1, city, state, postal_code } = parseAddress(fullAddress);
+export async function findVenueByHash(fullAddress: string) {
+  try {
+    const cleaned = sanitizeText(fullAddress) ?? "";
+    const venueHash = await generateVenueHash(cleaned);
+    console.log("🔑 Searching venue by hash:", venueHash);
 
-  const { data, error } = await supabase
-    .from("venues")
-    .select("id, name")
-    .ilike("address_line1", `%${address_line1.split(" ")[0]}%`) // fuzzy street number/street match
-    .ilike("city", `%${city}%`)
-    .eq("state", state)
-    .eq("postal_code", postal_code)
-    .limit(1);
+    const { data, error } = await supabase
+      .from("venues")
+      .select("id, name")
+      .eq("venue_hash", venueHash)
+      .limit(1);
 
-  if (error) {
-    console.error("Venue lookup failed:", error);
+    if (error) {
+      console.error("Venue lookup by hash failed:", error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  } catch (err) {
+    console.error("Error generating venue hash:", err);
     return null;
   }
-
-  return data?.[0] || null;
 }
 
 function parseAddress(address: string) {
