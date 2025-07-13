@@ -26,7 +26,8 @@ import { findVenueByHash } from "@/services/sbVenueService";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
 import { generateVenueHash } from "@/utilities";
-
+import * as chrono from "chrono-node";
+import { format as formatDateFns } from "date-fns";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -198,115 +199,48 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       return "";
     }
 
-    const knownDateFormats = [
-      "MM/dd/yyyy",
-      "MM/dd/yy",
-      "M/d/yy",
-      "M/d/yyyy",
-      "yyyy-MM-dd",
-      "MM-dd-yyyy",
-      "dd-MM-yyyy",
-      "dd MMM yyyy",
-      "dd-MMM-yyyy",
-      "MMMM d. yyyy",
-      "MMMM d, yyyy",
-    ];
+    try {
+      // Normalize 2-digit year formats like "Jun'25" → "Jun 2025"
+      let normalized = dateString.trim().replace(/[\u2018\u2019']/g, "'"); // normalize quotes
+      normalized = normalized.replace(/'(\d{2})\b/g, (_, yy) => {
+        const fullYear = parseInt(yy, 10);
+        return fullYear > 30 ? `19${yy}` : `20${yy}`;
+      });
 
-    let normalized = dateString.trim();
-
-    // 🛠 Fix 2-digit year edge case (e.g. 6/23/25 → 6/23/2025)
-    const mmddyyMatch = normalized.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
-    if (mmddyyMatch) {
-      const [_, m, d, y] = mmddyyMatch;
-      const fullYear = parseInt(y) > 30 ? `19${y}` : `20${y}`; // heuristic
-      normalized = `${m}/${d}/${fullYear}`;
-      console.log("📅 Normalized short year to:", normalized);
-    }
-
-    for (const fmt of knownDateFormats) {
-      try {
-        const parsed = parse(normalized, fmt, new Date());
-        const isValidDate = isValid(parsed);
-        console.log(`🔍 Tried format '${fmt}' → ${isValidDate ? "✅ Success" : "❌ Invalid"}`, parsed);
-
-        if (isValidDate) {
-          const formatted = format(parsed, "MM-dd-yyyy");
-          console.log(`✅ Parsed using '${fmt}' →`, formatted);
-          return formatted;
-        }
-      } catch (e) {
-        console.error(`💥 Error parsing with '${fmt}':`, e);
+      const results = chrono.parse(normalized, new Date(), { forwardDate: true });
+      if (results.length > 0) {
+        const parsedDate = results[0].start.date();
+        const formatted = formatDateFns(parsedDate, "yyyy-MM-dd");
+        console.log(`✅ Parsed date →`, formatted);
+        return formatted;
       }
-    }
-
-    // 🧩 Fallback: Handle MM/dd (e.g. 07/10 → assume current year)
-    const fallbackShort = normalized.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
-    if (fallbackShort) {
-      const [_, m, d] = fallbackShort;
-      const currentYear = new Date().getFullYear();
-      const constructed = `${m}/${d}/${currentYear}`;
-      console.log("📅 Trying fallback format with current year:", constructed);
-
-      try {
-        const parsed = parse(constructed, "M/d/yyyy", new Date());
-        if (isValid(parsed)) {
-          const formatted = format(parsed, "MM-dd-yyyy");
-          console.log("✅ Parsed fallback date →", formatted);
-          return formatted;
-        }
-      } catch (e) {
-        console.error("💥 Fallback parse failed:", e);
-      }
+    } catch (e) {
+      console.error("💥 Chrono parsing error:", e);
     }
 
     console.warn("⚠️ Skipping invalid transactionDate:", dateString);
     return "";
   }
 
-  function formatTime(timeString: string): string {
+  function formatTime(timeString: string, baseDate?: string): string {
     console.log("⏰ Parsing timeString:", timeString);
     if (!timeString) {
       console.warn("⚠️ Empty time string provided");
       return "";
     }
 
-    const cleaned = timeString.trim().toUpperCase().replace(/\s+/g, " ");
-    console.log("🧼 Normalized timeString:", cleaned);
+    try {
+      const referenceDate = baseDate ? new Date(baseDate) : new Date();
+      const results = chrono.parse(timeString, referenceDate);
 
-    const knownTimeFormats = [
-      "h:mm:ssa",     // e.g., 2:54:33pm
-      "h:mma",        // e.g., 2:54pm
-      "hh:mma",       // e.g., 02:54pm
-      "hmmssa",
-      "hmm a",
-      "h:mm:ss a",
-      "h:mm a",
-      "hh:mm:ss a",
-      "hh:mm a",
-      "H:mm:ss",
-      "H:mm",
-      "HHmmss",
-      "MMMM d yyyy",
-      "d MMMM yyyy",
-      "d MMM yyyy",
-      "d-MMMM-yyyy",
-      "d-MMM-yyyy",
-    ];
-
-    for (const fmt of knownTimeFormats) {
-      try {
-        const parsed = parse(cleaned, fmt, new Date());
-        const isValidTime = isValid(parsed);
-        console.log(`🔍 Tried format '${fmt}' → ${isValidTime ? "✅ Success" : "❌ Invalid"}`, parsed);
-
-        if (isValidTime) {
-          const formatted = format(parsed, "HH:mm:ss");
-          console.log(`✅ Parsed time → ${formatted}`);
-          return formatted;
-        }
-      } catch (err) {
-        console.error(`💥 Error parsing time with format '${fmt}':`, err);
+      if (results.length > 0 && results[0].start.isCertain("hour")) {
+        const parsedTime = results[0].start.date();
+        const formatted = formatDateFns(parsedTime, "HH:mm:ss");
+        console.log("✅ Parsed time →", formatted);
+        return formatted;
       }
+    } catch (e) {
+      console.error("💥 Chrono parse error:", e);
     }
 
     console.warn("⚠️ Skipping invalid time:", timeString);
@@ -347,12 +281,15 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
     }
 
+    const rawDate = getContent("TransactionDate");
+    const rawTime = getContent("TransactionTime");
+
     // 2) Construct TransactionData
     const tx: TransactionData = {
       merchantName: merchantName,
       merchantAddress: merchantAddress,
-      transactionDate: formatDate(getContent("TransactionDate")),
-      transactionTime: formatTime(getContent("TransactionTime")),
+      transactionDate: formatDate(rawDate),
+      transactionTime: formatTime(rawTime, formatDate(rawDate)),
 
       total: formatPrice(getContent("Total")) || 0,
       createdAt: new Date().toISOString(),

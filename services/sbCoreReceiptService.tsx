@@ -48,7 +48,8 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
       state: addressParts.state,
       postal: addressParts.postal,
 
-      transaction_date: parseDate(receiptData.transactionDate),
+      // transaction_date: parseDate(receiptData.transactionDate),
+      transaction_date: receiptData.transactionDate,
       transaction_time: receiptData.transactionTime,
       total: receiptData.total,
       venue_hash: venueHash
@@ -187,31 +188,4 @@ export async function archiveReceiptById(receiptId: number): Promise<{ success: 
   }
 
   return { success: true };
-}
-
-
-function parseDate(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-
-  // Match MM/DD/YY, M/D/YY, MM-DD-YYYY, etc.
-  const match = raw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-
-  if (!match) {
-    console.warn("⚠️ Could not parse date from string:", raw);
-    return null;
-  }
-
-  let [_, month, day, year] = match;
-
-  // Pad month/day to 2 digits
-  if (month.length === 1) month = "0" + month;
-  if (day.length === 1) day = "0" + day;
-
-  // Convert 2-digit years (e.g. 25 → 2025)
-  if (year.length === 2) {
-    const intYear = parseInt(year, 10);
-    year = intYear < 50 ? `20${year}` : `19${year}`;
-  }
-
-  return `${year}-${month}-${day}`; // YYYY-MM-DD
 }
