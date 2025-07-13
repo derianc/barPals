@@ -157,10 +157,8 @@ export async function getVenueDetails(venueId: string) {
   return data;
 }
 
-export async function findVenueByHash(fullAddress: string) {
+export async function findVenueByHash(venueHash: string) {
   try {
-    const cleaned = sanitizeText(fullAddress) ?? "";
-    const venueHash = await generateVenueHash(cleaned);
     console.log("🔑 Searching venue by hash:", venueHash);
 
     const { data, error } = await supabase

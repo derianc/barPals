@@ -52,7 +52,7 @@ const RegisterVenueScreen = () => {
       const analyzeResult = await analyzeReceipt(publicUrl);
       const doc = analyzeResult?.documents?.[0];
 
-      const merchantName = doc?.fields?.MerchantName?.content ?? "";
+      const merchantName = doc?.fields?.MerchantName?.content ?? "UNKNOWN";
       const merchantAddress = doc?.fields?.MerchantAddress?.content ?? "";
       if (!merchantName || !merchantAddress) throw new Error("Unable to extract venue info from receipt");
 

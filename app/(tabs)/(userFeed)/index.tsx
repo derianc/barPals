@@ -228,7 +228,7 @@ const userFeed = () => {
                       item_count={receipt.item_count}
                       total={receipt.total}
                       isSelected={selectedCard === receipt.id}
-                      isVerified={receipt.isVerified}
+                      isVerified={!!receipt.venue_id}
                       onSelect={handleSelectCard}
                       items={selectedItems[receipt.id] || []}
                       isExpanded={selectedCard === receipt.id}

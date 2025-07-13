@@ -120,9 +120,9 @@ const UserProfileDetails = () => {
         onEditName={(val) => { if (user) return; }}
         onToggleNotifications={(val) => { if (user) return; }}
       />
-
-
     </VStack>
+
+    
   );
 };
 

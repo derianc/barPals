@@ -25,6 +25,7 @@ import { useUser } from "@/contexts/userContext";
 import { findVenueByHash } from "@/services/sbVenueService";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
+import { generateVenueHash } from "@/utilities";
 
 
 type CameraViewProps = {
@@ -331,10 +332,25 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     // 1) Extract the "Items" array field (if it exists)
     const items = receipt?.documents[0]?.fields?.Items as DocumentArrayField
 
+    let merchantName = getContent("MerchantName");
+    const merchantAddress = getContent("MerchantAddress");
+
+    // Lookup venue name if merchantName is blank but address is provided
+    console.log("🔍 Merchant Name:", merchantName);
+    if (!merchantName && merchantAddress) {
+      console.log("🔍 Merchant Address provided, looking up venue by hash:", merchantAddress);
+      const hashedAddress = await generateVenueHash(merchantAddress);
+      const venue = await findVenueByHash(hashedAddress);
+      console.log("🔍 Found venue by address:", venue);
+      if (venue?.name) {
+        merchantName = venue.name;
+      }
+    }
+
     // 2) Construct TransactionData
     const tx: TransactionData = {
-      merchantName: getContent("MerchantName") || "Unknown",
-      merchantAddress: getContent("MerchantAddress") || "Unknown",
+      merchantName: merchantName,
+      merchantAddress: merchantAddress,
       transactionDate: formatDate(getContent("TransactionDate")),
       transactionTime: formatTime(getContent("TransactionTime")),
 
