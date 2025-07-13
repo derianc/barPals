@@ -236,9 +236,30 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
     }
 
+    // 🧩 Fallback: Handle MM/dd (e.g. 07/10 → assume current year)
+    const fallbackShort = normalized.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+    if (fallbackShort) {
+      const [_, m, d] = fallbackShort;
+      const currentYear = new Date().getFullYear();
+      const constructed = `${m}/${d}/${currentYear}`;
+      console.log("📅 Trying fallback format with current year:", constructed);
+
+      try {
+        const parsed = parse(constructed, "M/d/yyyy", new Date());
+        if (isValid(parsed)) {
+          const formatted = format(parsed, "MM-dd-yyyy");
+          console.log("✅ Parsed fallback date →", formatted);
+          return formatted;
+        }
+      } catch (e) {
+        console.error("💥 Fallback parse failed:", e);
+      }
+    }
+
     console.warn("⚠️ Skipping invalid transactionDate:", dateString);
     return "";
   }
+
 
   function formatTime(timeString: string): string {
     console.log("⏰ Parsing timeString:", timeString);
@@ -309,26 +330,9 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     // 1) Extract the "Items" array field (if it exists)
     const items = receipt?.documents[0]?.fields?.Items as DocumentArrayField
 
-    let merchantName = getContent("MerchantName");
-    const merchantAddress = getContent("MerchantAddress");
-
-    // look up venue based on address
-
-
-    // Lookup venue name if merchantName is blank but address is provided
-    // console.log("🔍 Merchant Name:", merchantName);
-    // if (!merchantName && merchantAddress) {
-    //   console.log("🔍 Merchant Address provided, looking up venue by address hash:", merchantAddress);
-    //   const venue = await findVenueByHash(merchantAddress); // merchant address will be hashed in service call
-    //   console.log("🔍 Found venue by address hash:", venue);
-    //   if (venue?.name) {
-    //     merchantName = venue.name;
-    //   }
-    // }
-
     // 2) Construct TransactionData
     const tx: TransactionData = {
-      merchantName: merchantName,
+      merchantName: getContent("MerchantName") || "Unknown",
       merchantAddress: getContent("MerchantAddress") || "Unknown",
       transactionDate: formatDate(getContent("TransactionDate")),
       transactionTime: formatTime(getContent("TransactionTime")),

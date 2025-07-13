@@ -1,7 +1,7 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
-import { generateVenueHash, parseAddressComponents, sanitizeAddress, sanitizeText } from "@/utilities";
+import { generateVenueHash, parseAddressComponents, sanitizeText } from "@/utilities";
 import { matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export * from './sbUserReceiptService'
@@ -29,9 +29,9 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 
 export async function insertReceiptDetails(userId: string, receiptData: TransactionData): Promise<boolean> {
   
-  const sanitizedAddress = sanitizeAddress(receiptData.merchantAddress);
-  const venueHash = await generateVenueHash(sanitizedAddress ?? "");
+  const venueHash = await generateVenueHash(receiptData.merchantAddress ?? "");
 
+  // parse address
   const addressParts = parseAddressComponents(receiptData.merchantAddress);
 
   const { data: receiptInsert, error: receiptError } = await supabase

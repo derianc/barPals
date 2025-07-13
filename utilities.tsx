@@ -1,11 +1,11 @@
 import * as Crypto from "expo-crypto";
 
 export async function generateVenueHash(address: string): Promise<string> {
-  const cleaned = sanitizeText(address) ?? ""; // remove \n, control chars, etc.
-  const normalized = normalizeAddressAbbreviations(cleaned); // convert St, E, etc.
+  const cleaned = sanitizeText(address) ?? "";                  // remove \n, control chars, etc.
+  const normalized = normalizeAddressAbbreviations(cleaned);    // convert St, E, etc.
   console.log("normalized before hash:", normalized);
 
-  const sanitized = sanitizeAddress(normalized) ?? ""; // final lowercase, alphanumeric
+  const sanitized = sanitizeAddress(normalized) ?? "";          // final lowercase, alphanumeric
   console.log("sanitized before hash:", sanitized);
 
   const addressHash = await Crypto.digestStringAsync(

@@ -61,7 +61,7 @@ const RegisterVenueScreen = () => {
       const coords = await geocodeAddress(fullAddress);
       if (!coords) throw new Error("Could not resolve coordinates");
 
-      const venueHash = await generateVenueHash(fullAddress);
+      const venueHash = await generateVenueHash(merchantAddress);
 
       const isDuplicate = await isVenueDuplicate(venueHash);
       if (isDuplicate) {
