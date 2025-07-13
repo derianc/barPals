@@ -1,6 +1,7 @@
 import { supabase } from "@/supabase";
 import { Venue } from "@/types/Venue";
 import { generateVenueHash, sanitizeText } from "@/utilities";
+import { matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export async function getVenuesForProfile(userId: string): Promise<Venue[]> {
   const { data, error } = await supabase
@@ -47,19 +48,45 @@ export async function uploadVenueImage(file: File, path: string) {
 }
 
 export async function createVenueWithOwner(venueData: any, ownerId: string) {
-  const { data, error } = await supabase.from("venues").insert([venueData]).select("id");
-  if (error) throw error;
-  const venueId = data[0].id;
+  console.log("🚀 Creating venue with data:", venueData);
 
+  // Step 1: Insert into venues
+  const { data, error } = await supabase.from("venues").insert([venueData]).select("id");
+  if (error) {
+    console.error("❌ Failed to insert venue:", error.message);
+    throw error;
+  }
+
+  const venueId = data?.[0]?.id;
+  console.log("✅ Venue inserted with ID:", venueId);
+
+  // Step 2: Link owner to venue
   const vuRes = await supabase.from("venue_users").insert({
     profile_id: ownerId,
     venue_id: venueId,
     role: "owner",
   });
 
-  if (vuRes.error) throw vuRes.error;
+  if (vuRes.error) {
+    console.error("❌ Failed to link owner to venue:", vuRes.error.message);
+    throw vuRes.error;
+  } else {
+    console.log("✅ Owner linked to venue");
+  }
+
+  // 🔄 Call edge function via shared helper
+  await matchReceiptToVenue({
+    mode: "venue_to_receipts",
+    venue_id: venueId,
+    street_line: venueData.address_line1?.toLowerCase(),
+    city: venueData.city?.toLowerCase(),
+    state: venueData.state?.toUpperCase(),
+    postal: venueData.postal_code,
+  });
+
   return venueId;
 }
+
 
 export async function getSelectedVenueHash({
   userId,
@@ -154,15 +181,17 @@ export async function findVenueByHash(fullAddress: string) {
   }
 }
 
-function parseAddress(address: string) {
-  const regex = /^(.*)\s+([A-Za-z\s]+),?\s*([A-Z]{2})\s+(\d{5})$/;
-  const match = address.match(regex);
+export async function isVenueDuplicate(venueHash: string): Promise<boolean> {
+  const { data: existing, error } = await supabase
+    .from("venues")
+    .select("id")
+    .eq("venue_hash", venueHash)
+    .maybeSingle();
 
-  if (!match) {
-    console.warn("Failed to parse address:", address);
-    return { address_line1: address, city: "", state: "", postal_code: "" };
+  if (error) {
+    console.error("❌ Duplicate check failed:", error);
+    return false; // fail open
   }
 
-  const [, address_line1, city, state, postal_code] = match;
-  return { address_line1: address_line1.trim(), city: city.trim(), state, postal_code };
+  return !!existing;
 }

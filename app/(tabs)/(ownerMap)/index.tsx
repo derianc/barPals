@@ -9,9 +9,8 @@ import {
   subscribeToLocationInserts,
   unsubscribeFromLocationUpdates,
   getNearbyUserLocations,
-  simulateUserMovementNearVenue,
-  deleteTestLocations
 } from "@/services/sbLocationService";
+import { deleteTestLocations, simulateUserMovementNearVenue } from '@/services/sbEdgeFunctions';
 
 const RADIUS_METERS = 2000;
 

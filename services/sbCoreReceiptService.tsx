@@ -1,7 +1,8 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
-import { generateVenueHash, sanitizeAddress, sanitizeText } from "@/utilities";
+import { generateVenueHash, parseAddressComponents, sanitizeAddress, sanitizeText } from "@/utilities";
+import { matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export * from './sbUserReceiptService'
 export * from './sbOwnerReceiptService'
@@ -28,11 +29,10 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 
 export async function insertReceiptDetails(userId: string, receiptData: TransactionData): Promise<boolean> {
   
-  // 1. Insert into user_receipts.
-  var sanitizedAddress = sanitizeAddress(receiptData.merchantAddress);
-  console.log("sanitizedAddress", sanitizedAddress);
-
+  const sanitizedAddress = sanitizeAddress(receiptData.merchantAddress);
   const venueHash = await generateVenueHash(sanitizedAddress ?? "");
+
+  const addressParts = parseAddressComponents(receiptData.merchantAddress);
 
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
@@ -41,6 +41,13 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
       receipt_url: sanitizeText(receiptData.receiptUri),
       merchant_name: sanitizeText(receiptData.merchantName),
       merchant_address: sanitizeText(receiptData.merchantAddress),
+
+      // 🆕 new fields
+      street_line: addressParts.street_line,
+      city: addressParts.city,
+      state: addressParts.state,
+      postal: addressParts.postal,
+
       transaction_date: parseDate(receiptData.transactionDate),
       transaction_time: receiptData.transactionTime,
       total: receiptData.total,
@@ -54,7 +61,7 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
     return false;
   }
 
-  // 3. Insert line items
+  // Insert items (unchanged)
   const itemInserts = receiptData.Items.map((item) => ({
     receipt_id: receiptInsert.id,
     item_name: sanitizeText(item.item_name),
@@ -68,21 +75,23 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
 
   if (itemsError) {
     console.error("❌ Failed to insert receipt items:", itemsError);
-
-    // 🔥 Rollback: delete the inserted receipt
     const { error: deleteError } = await supabase
       .from("user_receipts")
       .delete()
       .eq("id", receiptInsert.id);
-
-    if (deleteError) {
-      console.error("⚠️ Failed to rollback receipt after items insert failed:", deleteError);
-    } else {
-      console.log("♻️ Rolled back receipt insert due to item insert failure");
-    }
-
+    if (!deleteError) console.log("♻️ Rolled back receipt insert");
     return false;
   }
+
+  // call edge function
+  await matchReceiptToVenue({
+    mode: "receipt_to_venue",
+    receipt_id: receiptInsert.id,
+    street_line: addressParts.street_line,
+    city: addressParts.city,
+    state: addressParts.state,
+    postal: addressParts.postal
+  });
 
   console.log("✅ Receipt and items successfully inserted");
   return true;
@@ -179,6 +188,7 @@ export async function archiveReceiptById(receiptId: number): Promise<{ success: 
 
   return { success: true };
 }
+
 
 function parseDate(raw: string | null | undefined): string | null {
   if (!raw) return null;

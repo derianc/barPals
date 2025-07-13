@@ -28,15 +28,3 @@ export async function registerForFcmPushNotificationsAsync(userId: string) {
   }
 }
 
-export async function sendNotification(userId: string) {
-  await fetch("https://pgswimjajpjupnafjosl.supabase.co/functions/v1/sendPushNotification", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      userId: userId,
-      title: "Test Push",
-      body: "Hello from Supabase Edge!",
-    }),
-  });
-}
-

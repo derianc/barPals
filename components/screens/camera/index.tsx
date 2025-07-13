@@ -312,16 +312,19 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     let merchantName = getContent("MerchantName");
     const merchantAddress = getContent("MerchantAddress");
 
+    // look up venue based on address
+
+
     // Lookup venue name if merchantName is blank but address is provided
-    console.log("🔍 Merchant Name:", merchantName);
-    if (!merchantName && merchantAddress) {
-      console.log("🔍 Merchant Address provided, looking up venue by address hash:", merchantAddress);
-      const venue = await findVenueByHash(merchantAddress); // merchant address will be hashed in service call
-      console.log("🔍 Found venue by address hash:", venue);
-      if (venue?.name) {
-        merchantName = venue.name;
-      }
-    }
+    // console.log("🔍 Merchant Name:", merchantName);
+    // if (!merchantName && merchantAddress) {
+    //   console.log("🔍 Merchant Address provided, looking up venue by address hash:", merchantAddress);
+    //   const venue = await findVenueByHash(merchantAddress); // merchant address will be hashed in service call
+    //   console.log("🔍 Found venue by address hash:", venue);
+    //   if (venue?.name) {
+    //     merchantName = venue.name;
+    //   }
+    // }
 
     // 2) Construct TransactionData
     const tx: TransactionData = {

@@ -14,9 +14,9 @@ import { Icon } from "@/components/ui/icon";
 import { Bell, LogOut } from "lucide-react-native";
 import { logout, updateUserProfile } from "@/services/sbUserService";
 import { useRouter } from "expo-router";
-import { sendNotification } from "@/services/fcmNotificationService";
 import * as Notifications from 'expo-notifications';
 import { useUser } from "@/contexts/userContext";
+import { sendNotification } from "@/services/sbEdgeFunctions";
 
 
 interface ProfileCardProps {
