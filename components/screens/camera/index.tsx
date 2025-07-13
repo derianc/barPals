@@ -28,6 +28,7 @@ import { Camera, useCameraDevices, useCameraPermission } from 'react-native-visi
 import { generateVenueHash } from "@/utilities";
 import * as chrono from "chrono-node";
 import { format as formatDateFns } from "date-fns";
+import { geocodeAddress } from "@/services/sbEdgeFunctions";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -269,12 +270,15 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     let merchantName = getContent("MerchantName");
     const merchantAddress = getContent("MerchantAddress");
 
+    // get geoDetails from provided address
+    const geo = await geocodeAddress(merchantAddress);
+
     // Lookup venue name if merchantName is blank but address is provided
     console.log("🔍 Merchant Name:", merchantName);
     if (!merchantName && merchantAddress) {
-      console.log("🔍 Merchant Address provided, looking up venue by hash:", merchantAddress);
-      const hashedAddress = await generateVenueHash(merchantAddress);
-      const venue = await findVenueByHash(hashedAddress);
+      console.log("🔍 Merchant Address provided, looking up venue by hash:", geo.formatted);
+      
+      const venue = await findVenueByHash(geo.venueHash);
       console.log("🔍 Found venue by address:", venue);
       if (venue?.name) {
         merchantName = venue.name;

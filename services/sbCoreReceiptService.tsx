@@ -2,7 +2,7 @@ import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
 import { generateVenueHash, parseAddressComponents, sanitizeText } from "@/utilities";
-import { matchReceiptToVenue } from "./sbEdgeFunctions";
+import { geocodeAddress, matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export * from './sbUserReceiptService'
 export * from './sbOwnerReceiptService'
@@ -28,31 +28,34 @@ export async function isReceiptDuplicate(receiptData: TransactionData): Promise<
 }
 
 export async function insertReceiptDetails(userId: string, receiptData: TransactionData): Promise<boolean> {
-  
-  const venueHash = await generateVenueHash(receiptData.merchantAddress ?? "");
+  console.log("📥 Starting receipt insert for user:", userId);
+  console.log("🧾 Raw receipt data:", receiptData);
 
-  // parse address
-  const addressParts = parseAddressComponents(receiptData.merchantAddress);
+  // Step 1: Geocode merchant address
+  console.log("📍 Geocoding address:", receiptData.merchantAddress);
+  const geo = await geocodeAddress(receiptData.merchantAddress);
+  console.log("📍 Geocoded result:", geo);
 
+  // Step 2: Prepare sanitized data
+  const sanitizedReceiptUrl = sanitizeText(receiptData.receiptUri);
+
+  // Step 3: Insert receipt
+  console.log("📝 Inserting into user_receipts...");
   const { data: receiptInsert, error: receiptError } = await supabase
     .from("user_receipts")
     .insert({
       user_id: userId,
-      receipt_url: sanitizeText(receiptData.receiptUri),
-      merchant_name: sanitizeText(receiptData.merchantName),
-      merchant_address: sanitizeText(receiptData.merchantAddress),
-
-      // 🆕 new fields
-      street_line: addressParts.street_line,
-      city: addressParts.city,
-      state: addressParts.state,
-      postal: addressParts.postal,
-
-      // transaction_date: parseDate(receiptData.transactionDate),
+      receipt_url: sanitizedReceiptUrl,
+      merchant_name: receiptData.merchantName,
+      merchant_address: geo.formatted,
+      street_line: geo.components.address1,
+      city: geo.components.city,
+      state: geo.components.state,
+      postal: geo.components.postal,
       transaction_date: receiptData.transactionDate,
       transaction_time: receiptData.transactionTime,
       total: receiptData.total,
-      venue_hash: venueHash
+      venue_hash: geo.venueHash
     })
     .select()
     .single();
@@ -62,7 +65,9 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
     return false;
   }
 
-  // Insert items (unchanged)
+  console.log("✅ Receipt inserted:", receiptInsert.id);
+
+  // Step 4: Insert line items
   const itemInserts = receiptData.Items.map((item) => ({
     receipt_id: receiptInsert.id,
     item_name: sanitizeText(item.item_name),
@@ -70,31 +75,43 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
     price: item.price,
   }));
 
+  console.log("🧾 Line items to insert:", itemInserts);
+
   const { error: itemsError } = await supabase
     .from("user_receipt_items")
     .insert(itemInserts);
 
   if (itemsError) {
     console.error("❌ Failed to insert receipt items:", itemsError);
+
     const { error: deleteError } = await supabase
       .from("user_receipts")
       .delete()
       .eq("id", receiptInsert.id);
-    if (!deleteError) console.log("♻️ Rolled back receipt insert");
+
+    if (!deleteError) {
+      console.log("♻️ Rolled back receipt insert:", receiptInsert.id);
+    } else {
+      console.warn("⚠️ Rollback failed:", deleteError);
+    }
+
     return false;
   }
 
-  // call edge function
-  await matchReceiptToVenue({
-    mode: "receipt_to_venue",
+  // Step 5: Trigger receipt-to-venue matcher
+  const matchPayload = {
+    mode: "receipt_to_venue" as const,
     receipt_id: receiptInsert.id,
-    street_line: addressParts.street_line,
-    city: addressParts.city,
-    state: addressParts.state,
-    postal: addressParts.postal
-  });
+    street_line: geo.components.address1,
+    city: geo.components.city,
+    state: geo.components.state,
+    postal: geo.components.postal
+  };
 
-  console.log("✅ Receipt and items successfully inserted");
+  console.log("🔁 Triggering matchReceiptToVenue with:", matchPayload);
+  await matchReceiptToVenue(matchPayload);
+
+  console.log("✅ Receipt and items successfully inserted and matched");
   return true;
 }
 

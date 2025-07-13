@@ -2,10 +2,9 @@ import * as Crypto from "expo-crypto";
 
 export async function generateVenueHash(address: string): Promise<string> {
   const cleaned = sanitizeText(address) ?? "";                  // remove \n, control chars, etc.
-  const normalized = normalizeAddressAbbreviations(cleaned);    // convert St, E, etc.
-  console.log("normalized before hash:", normalized);
+  console.log("normalized before hash:", cleaned);
 
-  const sanitized = sanitizeAddress(normalized) ?? "";          // final lowercase, alphanumeric
+  const sanitized = sanitizeAddress(cleaned) ?? "";             // final lowercase, alphanumeric
   console.log("sanitized before hash:", sanitized);
 
   const addressHash = await Crypto.digestStringAsync(
@@ -27,20 +26,22 @@ export function sanitizeText(input?: string | null): string | null {
   return normalizeAddressAbbreviations(sanitizedText);
 }
 
-export function sanitizeAddress(input?: string | null): string | null {
+function sanitizeAddress(input?: string | null): string | null {
   if (!input) return null;
   return input
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
     .replace(/[^a-zA-Z0-9]/g, '')                // Keep only letters and numbers
-    .toLocaleLowerCase();
+    .toLocaleLowerCase();                        // All lowercase
 }
 
-export function parseAddressComponents(addressRaw: string): {
-  street_line: string | null;
-  city: string | null;
-  state: string | null;
-  postal: string | null;
-} {
+export function sanitizeTextForDisplay(input?: string | null): string | null {
+  if (!input) return null;
+  return input
+    .replace(/\n/g, ' ')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .trim();
+}
+
+export function parseAddressComponents(addressRaw: string): { street_line: string | null; city: string | null; state: string | null; postal: string | null; } {
   if (!addressRaw) {
     return { street_line: null, city: null, state: null, postal: null };
   }
@@ -70,8 +71,6 @@ export function parseAddressComponents(addressRaw: string): {
     postal,
   };
 }
-
-
 
 function normalizeAddressAbbreviations(address: string): string {
   const directions: { [key: string]: string } = {

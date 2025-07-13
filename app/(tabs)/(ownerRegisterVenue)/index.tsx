@@ -56,27 +56,30 @@ const RegisterVenueScreen = () => {
       const merchantAddress = doc?.fields?.MerchantAddress?.content ?? "";
       if (!merchantName || !merchantAddress) throw new Error("Unable to extract venue info from receipt");
 
-      const fullAddress = sanitizeText(merchantAddress)!;
-      const parsed = parseAddressComponents(fullAddress);
-      const coords = await geocodeAddress(fullAddress);
-      if (!coords) throw new Error("Could not resolve coordinates");
+      const geo = await geocodeAddress(merchantAddress);
+      if (!geo || !geo.formatted || !geo.latitude || !geo.longitude || !geo.venueHash || !geo.components) {
+        throw new Error("Could not resolve coordinates or full address");
+      }
 
-      const venueHash = await generateVenueHash(merchantAddress);
-
-      const isDuplicate = await isVenueDuplicate(venueHash);
+      const isDuplicate = await isVenueDuplicate(geo.venueHash);
       if (isDuplicate) {
         Alert.alert("⚠️ Already Exists", "This venue is already registered.");
         setImage(null);
         return;
       }
 
+      const fullAddress = sanitizeText(geo.formatted);
       setPreview({
         name: merchantName,
         fullAddress,
-        ...parsed,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        venue_hash: venueHash,
+        address1: geo.components.address1,
+        address2: geo.components.address2 || "",
+        city: geo.components.city,
+        state: geo.components.state,
+        postal: geo.components.postal,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        venue_hash: geo.venueHash,
       });
 
     } catch (err: any) {
@@ -95,7 +98,7 @@ const RegisterVenueScreen = () => {
     try {
       const venueData = {
         name: preview.name,
-        address_line1: preview.street_line,
+        address_line1: preview.address1,
         city: preview.city,
         state: preview.state,
         postal_code: preview.postal,
@@ -148,7 +151,9 @@ const RegisterVenueScreen = () => {
               />
 
               <Text style={styles.previewText}>
-                {preview.street_line}, {preview.city}, {preview.state} {preview.postal}
+                {preview.address1}
+                {preview.address2 ? `, ${preview.address2}` : ""}
+                , {preview.city}, {preview.state} {preview.postal}
               </Text>
               <Text style={styles.previewText}>Lat: {preview.latitude}</Text>
               <Text style={styles.previewText}>Lng: {preview.longitude}</Text>
