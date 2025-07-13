@@ -33,6 +33,8 @@ type CameraViewProps = {
 
 type FlashMode = 'off' | 'on' | 'auto';
 
+type ReceiptValidationResult = { valid: boolean; reason?: string };
+
 export default function CameraComponent({ onCapture }: CameraViewProps) {
   const { hasPermission, requestPermission } = useCameraPermission();
   const [flash, setFlash] = useState<FlashMode>('off'); 
@@ -69,33 +71,33 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     }, [])
   );
 
-  const isReceiptValid = (txData: TransactionData | undefined): boolean => {
-    if (!txData) {
-      console.warn("Invalid receipt: txData is undefined");
-      return false;
-    }
+  const isReceiptValid = (txData: TransactionData | undefined): ReceiptValidationResult => {
+  if (!txData) {
+    console.warn("Invalid receipt: txData is undefined");
+    return { valid: false, reason: "No data extracted from receipt" };
+  }
 
-    const requiredFields: Record<string, any> = {
-      merchantName: txData.merchantName,
-      total: txData.total,
-      transactionDate: txData.transactionDate,
-      transactionTime: txData.transactionTime,
-    };
-
-    for (const [key, value] of Object.entries(requiredFields)) {
-      if (
-        value === null ||
-        value === undefined ||
-        (typeof value === "string" && value.toUpperCase().trim() === "UNKNOWN") ||
-        (typeof value === "string" && value.trim() === "")
-      ) {
-        console.warn(`Invalid receipt: ${key} is invalid (${value})`);
-        return false;
-      }
-    }
-
-    return true;
+  const requiredFields: Record<string, any> = {
+    "Merchant Name": txData.merchantName,
+    "Total Amount": txData.total,
+    "Transaction Date": txData.transactionDate,
+    "Transaction Time": txData.transactionTime,
   };
+
+  for (const [label, value] of Object.entries(requiredFields)) {
+    if (
+      value === null ||
+      value === undefined ||
+      (typeof value === "string" && value.toUpperCase().trim() === "UNKNOWN") ||
+      (typeof value === "string" && value.trim() === "")
+    ) {
+      console.warn(`Invalid receipt: ${label} is invalid (${value})`);
+      return { valid: false, reason: `${label} is missing or invalid` };
+    }
+  }
+
+  return { valid: true };
+};
 
   const handleCapture = async () => {
     console.log('taking picture');
@@ -132,11 +134,11 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       // 4) Extract typed TransactionData from the raw AnalyzeResult
       const txData = await extractReceiptDetails(analysisResult, publicUrl);
 
-      const isValid = isReceiptValid(txData);
-      if (!isValid) {
-        setBottomHeader("Error!")
-        setBottomText("Invalid Receipt Format!")
-        setBottomSuccess(false)
+      const { valid, reason } = isReceiptValid(txData);
+      if (!valid) {
+        setBottomHeader("Invalid Receipt");
+        setBottomText(reason || "Missing required fields");
+        setBottomSuccess(false);
         bottomSheetRef.current?.open();
         return;
       }
@@ -259,7 +261,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     console.warn("⚠️ Skipping invalid transactionDate:", dateString);
     return "";
   }
-
 
   function formatTime(timeString: string): string {
     console.log("⏰ Parsing timeString:", timeString);
