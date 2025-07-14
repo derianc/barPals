@@ -12,7 +12,7 @@ import { ThemeContext } from "@/contexts/theme-context";
 import { WeatherTabContext } from "@/contexts/user-home-context";
 
 // Re‐import SpendBucket
-import type { SpendBucket } from "@/services/sbCoreReceiptService";
+import { SpendBucket } from "@/types/SpendBucket";
 
 interface ChartProps {
   chartRef: React.Ref<any>;
@@ -34,27 +34,28 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
   const lineData =
   data && data.length > 0
     ? (() => {
+        const paddedStart = { value: 0, label: "", dataPointColor: "transparent" };
+        const paddedEnd = { value: 0, label: "", dataPointColor: "transparent" };
+
         const points = data.map((bucket) => ({
-            value: typeof bucket.total === "number" ? bucket.total : 0,
-            label: bucket.label,
-            dataPointColor: bucket.total === 0 ? "#ccc" : "#b68cd4",
+          value: typeof bucket.total === "number" ? bucket.total : 0,
+          label: bucket.label,
+          dataPointColor: bucket.total === 0 ? "#ccc" : "#b68cd4",
         }));
 
-        const trailingPoint = points.length > 0 ? points[points.length - 1] : { value: 0 };
-
-        return [{}, ...points, trailingPoint]; // padding + points + last point repeated
+        return [paddedStart, ...points, paddedEnd];
       })()
-      : [
-          {}, // fallback if no data
-          { value: 18, label: "06-01" },
-          { value: 23, label: "06-02" },
-          { value: 15, label: "06-03" },
-          { value: 18, label: "06-04" },
-          { value: 10, label: "06-05" },
-          { value: 25, label: "06-06" },
-          { value: 19, label: "06-07" },
-          {},
-        ];
+    : [
+        {}, // fallback if no data
+        { value: 18, label: "06-01" },
+        { value: 23, label: "06-02" },
+        { value: 15, label: "06-03" },
+        { value: 18, label: "06-04" },
+        { value: 10, label: "06-05" },
+        { value: 25, label: "06-06" },
+        { value: 19, label: "06-07" },
+        {},
+      ];
 
   //
   // 2) Count real points (excluding padding)
@@ -154,6 +155,9 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
                 noOfSections={4}
                 stepHeight={30}
                 spacing={baseSpacing}
+                yAxisOffset={0} // ✅ ensures Y-axis starts at zero
+                adjustToWidth // ✅ stretches to fill space (optional but smooth)
+                hideRules={false} // ✅ ensure grid shows
                 pointerConfig={{
                   hidePointerForMissingValues: true,
                   pointerStripHeight: 86,
