@@ -253,3 +253,54 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
     return null;
   }
 }
+
+export async function getOwnerHomeMetrics(venueHash: string, start: Date | null, end: Date | null) {
+  console.log("📤 Calling getOwnerHomeMetrics with:", {
+    venueHash,
+    start: start?.toISOString?.() ?? null,
+    end: end?.toISOString?.() ?? null,
+  });
+
+  const session = await supabase.auth.getSession();
+  const token = session?.data?.session?.access_token;
+
+  if (!token) {
+    console.error("🚫 Cannot get getOwnerHomeMetrics — no access token found");
+    return null;
+  }
+
+  const payload = {
+    venueHash,
+    start: start ? start.toISOString().split("T")[0] : null,
+    end: end ? end.toISOString().split("T")[0] : null,
+  };
+
+  try {
+    console.log("📡 Sending POST request to getOwnerHomeMetrics...");
+    const res = await fetch(
+      "https://pgswimjajpjupnafjosl.supabase.co/functions/v1/getOwnerHomeMetrics",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    console.log(`📥 Response status: ${res.status}`);
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error("❌ Edge function returned an error:", result);
+      return null;
+    }
+
+    return result;
+  } catch (error) {
+    console.error("❌ Unexpected error calling getOwnerHomeMetrics:", error);
+    return null;
+  }
+}

@@ -13,16 +13,8 @@ import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
 import { useUser } from "@/contexts/userContext";
 import { useVenue } from "@/contexts/venueContex";
 
-import {
-  getCurrentAndPreviousTotalVenueSpend,
-  getAverageSpendPerCustomer,
-  getUniqueVisitorsToVenue,
-  getAverageItemsPerCustomer,
-  getVenueSpendTrend,
-  getVenueVisitsByDay,
-  SpendBucket
-} from "@/services/sbCoreReceiptService";
-import { getSelectedVenueHash } from "@/services/sbVenueService";
+import { SpendBucket } from "@/types/SpendBucket";
+import { getOwnerHomeMetrics } from "@/services/sbEdgeFunctions";
 
 type Timeframe = "7days" | "30days" | "all";
 
@@ -87,53 +79,46 @@ const OwnerHome = () => {
   );
 
   async function loadOwnerHomeData(venueHash: string) {
-    if (!venueHash) return;
+  if (!venueHash) return;
 
-    const { start, end } = getDateRange(timeframe);
+  const { start, end } = getDateRange(timeframe);
 
-    setMetricsLoading(true);
-    setSpendLoading(true);
+  setMetricsLoading(true);
+  setSpendLoading(true);
 
-    try {
-      const [
-        totalSpend,
-        avgSpend,
-        totalVisitors,
-        avgItems,
-        spendTrend,
-        visitsByDay
-      ] = await Promise.all([
-        getCurrentAndPreviousTotalVenueSpend(start, end, venueHash),
-        getAverageSpendPerCustomer(start, end, venueHash),
-        getUniqueVisitorsToVenue(start, end, venueHash),
-        getAverageItemsPerCustomer(start, end, venueHash),
-        getVenueSpendTrend(start, end, venueHash),
-        getVenueVisitsByDay(start, end, venueHash)
-      ]);
+  try {
+    const metrics = await getOwnerHomeMetrics(venueHash, start, end);
 
-      setCurrentTotalSpend(totalSpend.current);
-      setTotalSpendChange(totalSpend.percentChange);
+    setCurrentTotalSpend(metrics.totalSpend.current);
+    setTotalSpendChange(metrics.totalSpend.percentChange);
 
-      setCurrentAvgSpend(avgSpend.current);
-      setAvgSpendChange(avgSpend.percentChange);
+    setCurrentAvgSpend(metrics.avgSpend.current);
+    setAvgSpendChange(metrics.avgSpend.percentChange);
 
-      setCurrentVisitors(totalVisitors.current);
-      setVisitorsChange(totalVisitors.percentChange);
+    setCurrentVisitors(metrics.totalVisitors.current);
+    setVisitorsChange(metrics.totalVisitors.percentChange);
 
-      setCurrentAvgItems(avgItems.current);
-      setItemsChange(avgItems.percentChange);
+    setCurrentAvgItems(metrics.avgItems.current);
+    setItemsChange(metrics.avgItems.percentChange);
 
-      setSpendData(spendTrend.data.reverse());
-      setDailyVisits(visitsByDay.data);
-    } catch (error) {
-      console.error("❌ Error fetching owner metrics:", error);
-      setSpendData([]);
-      setDailyVisits([]);
-    } finally {
-      setMetricsLoading(false);
-      setSpendLoading(false);
-    }
+    const paddedSpendData = [
+      { day: "padding-start", total: 0 },
+      ...metrics.spendTrend.reverse(),
+      { day: "padding-end", total: 0 },
+    ];
+    setSpendData(paddedSpendData);
+    
+    setDailyVisits(metrics.visitsByDay);
+  } catch (error) {
+    console.error("❌ Error fetching owner metrics:", error);
+    setSpendData([]);
+    setDailyVisits([]);
+  } finally {
+    setMetricsLoading(false);
+    setSpendLoading(false);
   }
+}
+
 
   useEffect(() => {
     hasHourlyTabChild1Animated.current = true;

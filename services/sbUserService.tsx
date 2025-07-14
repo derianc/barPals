@@ -23,19 +23,27 @@ export async function login(email: string, password: string) {
 }
 
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
+  try {
+    const { data } = await supabase.auth.getSession();
 
-  if (error) {
-    console.error("Logout failed:", error.message);
-    return { error };
+    if (!data?.session) {
+      console.warn("⚠️ No active session — skipping Supabase signOut");
+    } else {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Logout failed:", error.message);
+        return { error };
+      }
+    }
+
+    await AsyncStorage.removeItem("currentUserId");
+    router.replace("/login");
+    return { error: null };
+
+  } catch (err: any) {
+    console.error("❌ Logout threw unexpected error:", err.message || err);
+    return { error: err };
   }
-
-  await AsyncStorage.removeItem("currentUserId");
-
-  // Reset app navigation
-  router.replace("/login");
-
-  return { error: null };
 }
 
 export async function getProfile(): Promise<{ data: UserProfileData | null; error: PostgrestError | null } | null> {
