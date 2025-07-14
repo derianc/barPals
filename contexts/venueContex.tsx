@@ -30,7 +30,7 @@ export const VenueProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const loadVenues = async () => {
             console.log("📡 Fetching venues for user:", user.id);
             const data = await getVenuesForProfile(user.id);
-            console.log("📦 Venues fetched:", data.length, data);
+            // console.log("📦 Venues fetched:", data.length, data);
             setAllVenues(data);
 
             try {
