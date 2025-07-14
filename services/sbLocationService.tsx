@@ -1,28 +1,29 @@
 import { supabase } from "@/supabase";
 import * as Location from "expo-location";
 import * as Crypto from 'expo-crypto';
+import { sendNotification } from "./sbEdgeFunctions";
 
 let refreshTimeout: NodeJS.Timeout | null = null;
 
 export async function saveUserLocation(userId: string, location: Location.LocationObject) {
   try {
-    // ⏳ Prevent saving if last entry was within 30 minutes
-    const thirtyMinsAgo = new Date(Date.now() - 1 * 60 * 1000).toISOString();
+    // ⏳ Prevent saving if last entry was within 10 minutes
+    const tenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
 
     const { data: recent, error: checkError } = await supabase
-      .from("user_location")
-      .select("id")
+      .from("latest_user_location")
+      .select("recorded_at")
       .eq("user_id", userId)
-      .gte("recorded_at", thirtyMinsAgo)
-      .limit(1);
+      .gte("recorded_at", tenMinsAgo)
+      .maybeSingle();
 
     if (checkError) {
       console.error("❌ Error checking last location:", checkError);
       return;
     }
 
-    if (recent && recent.length > 0) {
-      console.log("⏱️ Skipping save — already updated within last 15 minutes");
+    if (recent) {
+      console.log("⏱️ Skipping save — already updated within last 10 minutes");
       return;
     }
 
@@ -111,3 +112,29 @@ export async function getNearbyUserLocations(
   return data ?? [];
 }
 
+// export async function checkNearbyOffers(userId: string, coords: { latitude: number; longitude: number }) {
+//   const { latitude, longitude } = coords;
+
+//   const { data: offers, error } = await supabase.rpc("get_geo_eligible_offers", {
+//     user_id: userId,
+//     user_lat: latitude,
+//     user_lng: longitude
+//   });
+
+//   if (error) {
+//     console.error("❌ Error checking nearby offers:", error);
+//     return;
+//   }
+
+//   for (const offer of offers) {
+//     // Send push notification
+//     await sendNotification(userId, offer.title, offer.description);
+
+//     // Mark as notified so it doesn't repeat
+//     await supabase
+//       .from("user_offer_candidates")
+//       .update({ is_notified: true })
+//       .eq("user_id", userId)
+//       .eq("offer_id", offer.id);
+//   }
+// }

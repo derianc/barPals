@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, } from "react";
 import {
   View,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Image,
-  Text,
+  Text
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { analyzeReceipt } from "@/services/formRecognizerService";
@@ -20,15 +20,14 @@ import { uploadReceipt } from "@/services/sbFileService";
 import { insertReceiptDetails, isReceiptDuplicate } from "@/services/sbCoreReceiptService";
 import RBSheet from "react-native-raw-bottom-sheet"
 import SuccessSheet from "./BottomSheet";
-import { format, parse, isValid } from "date-fns";
 import { useUser } from "@/contexts/userContext";
 import { findVenueByHash } from "@/services/sbVenueService";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { Camera, useCameraDevices, useCameraPermission } from 'react-native-vision-camera';
-import { generateVenueHash } from "@/utilities";
 import * as chrono from "chrono-node";
 import { format as formatDateFns } from "date-fns";
 import { geocodeAddress } from "@/services/sbEdgeFunctions";
+import LottieView from "lottie-react-native";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -53,6 +52,17 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
   const device = devices.find((d) => d.position === 'back');
   const [torch, setTorch] = useState<'on' | 'off'>('off');
 
+  const statusAnimations: Record<string, any> = {
+    upload: require("@/assets/animations/upload.json"),
+    analyze: require("@/assets/animations/ai.json"),
+    duplicate: require("@/assets/animations/warning.json"),
+    save: require("@/assets/animations/save2.json"),
+    success: require("@/assets/animations/success.json"),
+    error: require("@/assets/animations/error.json"),
+  };
+  const [statusText, setStatusText] = useState("");
+  const [statusKey, setStatusKey] = useState<keyof typeof statusAnimations>("capture");
+
 
   const { user } = useUser();
 
@@ -68,7 +78,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       requestPermission();
 
       return () => {
-        // setCameraRef(null);     // Clean up cameraRef on unfocus
         setPhotoUri(null);      // Optionally reset preview
       };
     }, [])
@@ -103,7 +112,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 };
 
   const handleCapture = async () => {
-    console.log('taking picture');
     
     if (!cameraRef.current) {
       console.warn("❌ Camera ref not available");
@@ -129,9 +137,11 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       setLoading(true);
 
       // 2) Upload local file to storage → get public URL
+      setStatusKey("upload");
       const publicUrl = await uploadReceipt(fileUri, "user-receipts");
 
       // 3) Call analyzeReceipt(documentUrl: string)
+      setStatusKey("analyze");
       const analysisResult = await analyzeReceipt(publicUrl);
 
       // 4) Extract typed TransactionData from the raw AnalyzeResult
@@ -157,12 +167,17 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
 
       // 5) Save to Supabase
+      // setStatusKey("save");
       const isInsertSuccessful = await insertReceiptDetails(user.id, txData);
       if (isInsertSuccessful) {
+        setStatusKey("success");
+
         setBottomHeader("Success!")
         setBottomText(`Receipt for ${txData.merchantName} uploaded successfully!`)
         setBottomSuccess(true)
       } else {
+        setStatusKey("error");
+
         setBottomHeader("Error!")
         setBottomText("Unable To Save Receipt Details")
         setBottomSuccess(false)
@@ -366,19 +381,14 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       </RBSheet>
 
       {/* Show preview image while loading */}
-      {loading && photoUri && (
-        <View style={styles.previewOverlay}>
-          <Image source={{ uri: photoUri }} style={styles.previewImage} />
-          <View style={styles.spinnerOverlay}>
-            <ActivityIndicator size="large" color="#fff" />
-          </View>
-        </View>
-      )}
-
-      {/* Loading Spinner Overlay */}
       {loading && (
         <View style={styles.spinnerOverlay}>
-          <ActivityIndicator size="large" color="#fff" />
+          <LottieView
+            source={statusAnimations[statusKey]}
+            autoPlay
+            loop
+            style={{ width: 120, height: 120 }}
+          />
         </View>
       )}
     </View>

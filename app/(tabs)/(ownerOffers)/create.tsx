@@ -9,6 +9,8 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  Switch,
+  Alert,
 } from "react-native";
 import OfferStepContainer from "@/components/ui/offerStepContainer/offerStepContainer";
 import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader";
@@ -16,9 +18,11 @@ import { format } from "date-fns";
 import DatePicker from "react-native-date-picker";
 import TargetAudienceSection from "@/components/screens/ownerOffer/targetAudienceComponent";
 import { submitOffer } from "@/services/sbOfferService";
-import { getVenueForUser } from "@/services/sbVenueService";
+// import { getVenueForUser } from "@/services/sbVenueService";
 import { useUser } from "@/contexts/userContext";
 import { useRouter } from "expo-router";
+import { processOffer } from "@/services/sbEdgeFunctions";
+import { useVenue } from "@/contexts/venueContex";
 
 const CreateOfferScreen = () => {
   const [title, setTitle] = useState("");
@@ -33,6 +37,8 @@ const CreateOfferScreen = () => {
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [spend, setSpend] = useState<number>(25);
   const [distance, setDistance] = useState<number>(5);
+  const [sendNow, setSendNow] = useState(true);
+  const { selectedVenue } = useVenue();
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -42,25 +48,39 @@ const CreateOfferScreen = () => {
         return;
       }
 
+      const venueId = selectedVenue?.id ;
+      if (!venueId) {
+        Alert.alert("No venue selected", "Please select a venue before creating an offer.");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const targetCriteria = {
         lastVisited: selectedChips,
         minSpend: spend,
         maxDistance: distance
       };
 
-      const venueId = await getVenueForUser(user.id); // Your own logic here
+      const validFromUtc = new Date(validFrom.getTime() - validFrom.getTimezoneOffset() * 60000);
+      const validUntilUtc = new Date(validUntil.getTime() - validUntil.getTimezoneOffset() * 60000);
+
       const offer = await submitOffer({
         venueId,
         title,
         description,
-        imageUrl: "", // if you handle uploads, use that URL
-        validFrom,
-        validUntil,
-        targetCriteria, // or whatever your targeting logic returns
-        scheduledAt: new Date(), // or schedule date
+        imageUrl: "", 
+        validFrom: validFromUtc,
+        validUntil: validUntilUtc,
+        targetCriteria,
+        scheduledAt: sendNow ? new Date() : validFrom, 
       });
 
       console.log("✅ Offer created:", offer);
+
+      if (sendNow && offer?.id) {
+        await processOffer(offer.id);
+      }
+
       router.replace(`/(tabs)/(ownerOffers)?refresh=${Date.now()}`);
 
       setTitle("");
@@ -162,6 +182,24 @@ const CreateOfferScreen = () => {
           distance={distance}
           setDistance={setDistance}
         />
+
+        <OfferStepContainer title="Send Now or Schedule">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={{ color: "#fff", fontSize: 16 }}>Send Now</Text>
+            <Switch
+              value={sendNow}
+              onValueChange={(val) => {
+                if (!val) {
+                  Alert.alert("Scheduled offers coming soon!");
+                } else {
+                  setSendNow(true); // Keep it on if toggled back to true
+                }
+              }}
+              trackColor={{ false: "#6B7280", true: "#A78BFA" }}
+              thumbColor={sendNow ? "#7C3AED" : "#D1D5DB"}
+            />
+          </View>
+        </OfferStepContainer>
 
 
         {/* 📝 Submit Button */}

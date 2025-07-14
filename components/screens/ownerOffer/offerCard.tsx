@@ -33,6 +33,7 @@ type Offer = {
   scheduled_at?: string;
   sent?: boolean;
   target_criteria?: TargetCriteria;
+  scheduledAt?: Date | null;
 };
 
 const OfferCard = ({ offer }: { offer: Offer }) => {
@@ -49,6 +50,8 @@ const OfferCard = ({ offer }: { offer: Offer }) => {
   } = offer;
 
   const lastVisited = target_criteria?.lastVisited;
+  const isUpcoming = scheduled_at ? new Date(scheduled_at) > new Date() : false;
+  const formattedScheduledAt = offer.scheduled_at ? format(new Date(offer.scheduled_at), "MMM d, yyyy h:mm a") : null;
 
   return (
     <View style={styles.card}>
@@ -62,6 +65,13 @@ const OfferCard = ({ offer }: { offer: Offer }) => {
 
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
+
+      {scheduled_at && !sent && isUpcoming && (
+        <Text style={styles.statusBadge}>Scheduled</Text>
+      )}
+      {scheduled_at && sent && (
+        <Text style={[styles.statusBadge, { backgroundColor: "#10B981" }]}>Sent</Text>
+      )}
 
       <HStack style={styles.metaRow}>
         <HStack style={styles.metaItem}>
@@ -82,20 +92,11 @@ const OfferCard = ({ offer }: { offer: Offer }) => {
         </HStack>
       </HStack>
 
-      {scheduled_at && (
+      {formattedScheduledAt  && (
         <HStack style={styles.metaItem}>
           <Icon as={CalendarClock} size={"lg"} style={styles.metaIcon} />
           <Text style={styles.metaText}>
-            Scheduled {format(parseISO(scheduled_at), "MMM d, yyyy h:mm a")}
-          </Text>
-        </HStack>
-      )}
-
-      {typeof sent === "boolean" && (
-        <HStack style={styles.metaItem}>
-          <Icon as={SendHorizonal} size={"lg"} style={[styles.metaIcon, { color: sent ? "#10B981" : "#F87171" }]} />
-          <Text style={[styles.metaText, { color: sent ? "#10B981" : "#F87171" }]}>
-            {sent ? "Sent" : "Not Sent"}
+            {offer.sent ? "Sent at" : "Scheduled for"} {formattedScheduledAt}
           </Text>
         </HStack>
       )}
@@ -195,6 +196,17 @@ const styles = StyleSheet.create({
   targetSection: {
     marginTop: 4,
     gap: 4,
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#FBBF24", // Tailwind amber-400
+    color: "#111827", // Tailwind gray-900
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
   },
 });
 

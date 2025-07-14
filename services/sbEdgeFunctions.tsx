@@ -43,14 +43,18 @@ export async function matchReceiptToVenue(payload: {
   }
 }
 
-export async function sendNotification(userId: string) {
+export async function sendNotification(
+  userId: string,
+  title: string = "Test Push",
+  body: string = "Hello from Supabase Edge!"
+) {
   await fetch("https://pgswimjajpjupnafjosl.supabase.co/functions/v1/sendPushNotification", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      userId: userId,
-      title: "Test Push",
-      body: "Hello from Supabase Edge!",
+      userId,
+      title,
+      body,
     }),
   });
 }
@@ -135,4 +139,66 @@ export async function geocodeAddress(address: string) {
 
   const data = await response.json();
   return data;
+}
+
+export async function processOffer(offerId: string) {
+  const session = await supabase.auth.getSession();
+  const token = session?.data?.session?.access_token;
+
+  if (!token) {
+    console.error("🚫 Cannot simulate users — no access token found");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://pgswimjajpjupnafjosl.supabase.co/functions/v1/sendOfferNotification", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`, // ✅ required for JWT-enforced functions
+      },
+      body: JSON.stringify({ offerId })
+    });
+
+    const result = await res.json();
+    if (!res.ok) {
+      console.error("❌ Failed to process offer:", result);
+    } else {
+      console.log("✅ Offer processed:", result.message);
+    }
+  } catch (err) {
+    console.error("❌ Error calling edge function:", err);
+  }
+}
+
+export async function checkNearbyOffers(userId: string, latitude: number, longitude: number ) {
+  const session = await supabase.auth.getSession();
+  const token = session?.data?.session?.access_token;
+
+  if (!token) {
+    console.error("🚫 Cannot simulate users — no access token found");
+    return;
+  }
+
+  try {
+    const res = await fetch("https://pgswimjajpjupnafjosl.supabase.co/functions/v1/checkNearbyOffers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`, // ✅ required for JWT-enforced functions
+      },
+      body: JSON.stringify({ userId, latitude, longitude })
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error("❌ Edge function returned an error:", result);
+      return;
+    }
+
+    console.log("✅ Offer processed:", result.message);
+  } catch (error) {
+    console.error("❌ Unexpected error calling checkNearbyOffers:", error);
+  }
 }

@@ -4,6 +4,7 @@ import { initBackgroundFetch } from "./backgroundPolling";
 import { saveUserLocation } from "@/services/sbLocationService";
 import { UserContext } from "@/contexts/userContext";
 import BackgroundFetch from "react-native-background-fetch"; // ✅ add at the top
+import { checkNearbyOffers } from "@/services/sbEdgeFunctions";
 
 export function LocationTracker() {
   const { user, rehydrated } = useContext(UserContext);
@@ -36,20 +37,13 @@ export function LocationTracker() {
           async (location) => {
             console.log("📡 Foreground location:", location.coords);
             await saveUserLocation(user.id, location);
+
+            await checkNearbyOffers(user.id, location.coords.latitude, location.coords.longitude);
           }
         );
 
         console.log("✅ Foreground tracking initialized");
 
-        // ✅ Manual one-time test trigger
-        BackgroundFetch.scheduleTask({
-          taskId: "com.barpals.manual",
-          delay: 10000, // 10 seconds
-          forceAlarmManager: true,
-          periodic: false,
-          stopOnTerminate: false,
-          enableHeadless: true,
-        });
       } catch (err) {
         console.error("❌ Error in startTracking:", err);
       }

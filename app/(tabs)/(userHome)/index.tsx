@@ -7,8 +7,7 @@ import { Text } from "@/components/ui/text";
 import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
 import { WeatherTabContext } from "@/contexts/user-home-context";
-import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
-import { supabase } from "@/supabase";
+import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import {
   getAverageItemsPerVisit,
   getAverageUserSpend,
@@ -18,8 +17,7 @@ import {
   getUserSpendTrend,
   getUserVisitsByDay,
 } from "@/services/sbCoreReceiptService";
-import { DollarSign, StoreIcon, PackageIcon, Box, CloudRain } from "lucide-react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { DollarSign, StoreIcon, PackageIcon, } from "lucide-react-native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
 import { View } from "react-native";

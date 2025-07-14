@@ -60,7 +60,8 @@ export const submitOffer = async ({
       scheduled_at: scheduledAt?.toISOString() ?? null,
       sent: false,
     },
-  ]);
+  ])
+  .select("id, title, description, scheduled_at");
 
   if (error) {
     console.error("❌ Failed to submit offer:", error);
