@@ -44,7 +44,7 @@ const OwnerHome = () => {
 
   const timeframe: Timeframe =
     selectedTabIndex === 0 ? "7days" :
-    selectedTabIndex === 1 ? "30days" : "all";
+      selectedTabIndex === 1 ? "30days" : "all";
 
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [spendLoading, setSpendLoading] = useState(true);
@@ -79,45 +79,45 @@ const OwnerHome = () => {
   );
 
   async function loadOwnerHomeData(venueHash: string) {
-  if (!venueHash) return;
+    if (!venueHash) return;
 
-  const { start, end } = getDateRange(timeframe);
+    const { start, end } = getDateRange(timeframe);
 
-  setMetricsLoading(true);
-  setSpendLoading(true);
+    setMetricsLoading(true);
+    setSpendLoading(true);
 
-  try {
-    const metrics = await getOwnerHomeMetrics(venueHash, start, end);
+    try {
+      const metrics = await getOwnerHomeMetrics(venueHash, start, end);
 
-    setCurrentTotalSpend(metrics.totalSpend.current);
-    setTotalSpendChange(metrics.totalSpend.percentChange);
+      setCurrentTotalSpend(metrics.totalSpend.current);
+      setTotalSpendChange(metrics.totalSpend.percentChange);
 
-    setCurrentAvgSpend(metrics.avgSpend.current);
-    setAvgSpendChange(metrics.avgSpend.percentChange);
+      setCurrentAvgSpend(metrics.avgSpend.current);
+      setAvgSpendChange(metrics.avgSpend.percentChange);
 
-    setCurrentVisitors(metrics.totalVisitors.current);
-    setVisitorsChange(metrics.totalVisitors.percentChange);
+      setCurrentVisitors(metrics.totalVisitors.current);
+      setVisitorsChange(metrics.totalVisitors.percentChange);
 
-    setCurrentAvgItems(metrics.avgItems.current);
-    setItemsChange(metrics.avgItems.percentChange);
+      setCurrentAvgItems(metrics.avgItems.current);
+      setItemsChange(metrics.avgItems.percentChange);
 
-    const paddedSpendData = [
-      { day: "padding-start", total: 0 },
-      ...metrics.spendTrend.reverse(),
-      { day: "padding-end", total: 0 },
-    ];
-    setSpendData(paddedSpendData);
-    
-    setDailyVisits(metrics.visitsByDay);
-  } catch (error) {
-    console.error("❌ Error fetching owner metrics:", error);
-    setSpendData([]);
-    setDailyVisits([]);
-  } finally {
-    setMetricsLoading(false);
-    setSpendLoading(false);
+      const paddedSpendData = [
+        { day: "padding-start", total: 0 },
+        ...metrics.spendTrend.reverse(),
+        { day: "padding-end", total: 0 },
+      ];
+      setSpendData(paddedSpendData);
+
+      setDailyVisits(metrics.visitsByDay);
+    } catch (error) {
+      console.error("❌ Error fetching owner metrics:", error);
+      setSpendData([]);
+      setDailyVisits([]);
+    } finally {
+      setMetricsLoading(false);
+      setSpendLoading(false);
+    }
   }
-}
 
 
   useEffect(() => {

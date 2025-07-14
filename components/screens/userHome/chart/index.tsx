@@ -86,9 +86,7 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
   // 5) Determine a default title if none provided
   //
   let defaultTitle = "Chart";
-  if (timeframe === "day") {
-    defaultTitle = "Today’s Spend (hourly)";
-  } else if (timeframe === "7days") {
+  if (timeframe === "7days") {
     defaultTitle = "Last 7 Days Spend";
   } else if (timeframe === "30days") {
     defaultTitle = "Last 30 Days Spend";

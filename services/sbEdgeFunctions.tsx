@@ -204,11 +204,11 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
 }
 
 export async function getUserHomeMetrics(userId: string, start: Date | null, end: Date | null) {
-  console.log("📤 Calling getUserHomeMetrics with:", {
-    userId,
-    start: start?.toISOString?.() ?? null,
-    end: end?.toISOString?.() ?? null,
-  });
+  // console.log("📤 Calling getUserHomeMetrics with:", {
+  //   userId,
+  //   start: start?.toISOString?.() ?? null,
+  //   end: end?.toISOString?.() ?? null,
+  // });
 
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
@@ -238,9 +238,8 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
       }
     );
 
-    console.log(`📥 Response status: ${res.status}`);
-
     const result = await res.json();
+    // console.log("getUserHomeMetrics:", result)
 
     if (!res.ok) {
       console.error("❌ Edge function returned an error:", result);
@@ -255,11 +254,11 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
 }
 
 export async function getOwnerHomeMetrics(venueHash: string, start: Date | null, end: Date | null) {
-  console.log("📤 Calling getOwnerHomeMetrics with:", {
-    venueHash,
-    start: start?.toISOString?.() ?? null,
-    end: end?.toISOString?.() ?? null,
-  });
+  // console.log("📤 Calling getOwnerHomeMetrics with:", {
+  //   venueHash,
+  //   start: start?.toISOString?.() ?? null,
+  //   end: end?.toISOString?.() ?? null,
+  // });
 
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
@@ -289,9 +288,8 @@ export async function getOwnerHomeMetrics(venueHash: string, start: Date | null,
       }
     );
 
-    console.log(`📥 Response status: ${res.status}`);
-
     const result = await res.json();
+    // console.log("getOwnerHomeMetrics:", result)
 
     if (!res.ok) {
       console.error("❌ Edge function returned an error:", result);

@@ -1,13 +1,13 @@
 // components/screens/userHome/index.tsx
 
-import React, { useContext, useState, useCallback, useEffect } from "react";
+import React, { useContext, useState, useCallback, useEffect, useRef } from "react";
 import { VStack } from "@/components/ui/vstack";
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
 import { WeatherTabContext } from "@/contexts/user-home-context";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
 import { DollarSign, StoreIcon, PackageIcon } from "lucide-react-native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
@@ -62,81 +62,81 @@ const UserHome = () => {
   const [dailyVisits, setDailyVisits] = useState<{ day: string; visitCount: number }[]>([]);
   const [mounted, setMounted] = useState(false); // ⬅️ add this above state declarations
   const [chartKey, setChartKey] = useState(0);
+  const hasAnimatedRef = useRef(false);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
   const { user } = useUser();
   const userId = user?.id;
 
   useEffect(() => {
-    const timer = setTimeout(() => setMounted(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!spendLoading) {
-      setChartKey((prev) => prev + 1);
+    if (userId) {
+      loadUserHomeData(userId);
     }
-  }, [spendLoading]);
+  }, [timeframe, userId]);
 
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-
-      InteractionManager.runAfterInteractions(() => {
-        if (!userId || !isActive) return;
-
-        setCurrentTotalSpend(null);
-        setCurrentAvgSpend(null);
-        setCurrentVenuesVisited(null);
-        setCurrentAvgItems(null);
-        setTotalSpendChange(null);
-        setAvgSpendChange(null);
-        setVenuesVisitedChange(null);
-        setAvgItemsChange(null);
-        setSpendLoading(true);
-
-        const { start, end } = getDateRange(timeframe);
-
-        getUserHomeMetrics(userId, start, end)
-          .then((metrics) => {
-            if (!metrics || !isActive) return;
-
-            setCurrentTotalSpend(metrics.totalSpend.current);
-            setCurrentAvgSpend(metrics.avgSpend.current);
-            setCurrentVenuesVisited(metrics.uniqueVenues.current);
-            setCurrentAvgItems(metrics.avgItems.current);
-
-            setTotalSpendChange(metrics.totalSpend.percentChange);
-            setAvgSpendChange(metrics.avgSpend.percentChange);
-            setVenuesVisitedChange(metrics.uniqueVenues.percentChange);
-            setAvgItemsChange(metrics.avgItems.percentChange);
-                          
-            // setSpendData([...metrics.spendTrend].reverse());
-            const paddedSpendData = [
-              { day: "padding-start", total: 0 },
-              ...metrics.spendTrend.reverse(),
-              { day: "padding-end", total: 0 },
-            ];
-            setSpendData(paddedSpendData);
-
-            setDailyVisits(metrics.dailyVisits);
-          })
-          .catch((error) => {
-            if (isActive) {
-              console.error("❌ Error fetching edge metrics:", error);
-              setSpendData([]);
-              setDailyVisits([]);
-            }
-          })
-          .finally(() => {
-            if (isActive) setSpendLoading(false);
-          });
-      });
-
-      return () => {
-        isActive = false;
-      };
+      if (userId) {
+        loadUserHomeData(userId);
+      }
     }, [timeframe, userId])
   );
+
+  async function loadUserHomeData(userId: string) {
+
+    setCurrentTotalSpend(null);
+    setCurrentAvgSpend(null);
+    setCurrentVenuesVisited(null);
+    setCurrentAvgItems(null);
+    setTotalSpendChange(null);
+    setAvgSpendChange(null);
+    setVenuesVisitedChange(null);
+    setAvgItemsChange(null);
+    setSpendLoading(true);
+
+    const { start, end } = getDateRange(timeframe);
+
+    setMetricsLoading(true);
+    getUserHomeMetrics(userId, start, end)
+      .then((metrics) => {
+        setCurrentTotalSpend(metrics.totalSpend.current);
+        setCurrentAvgSpend(metrics.avgSpend.current);
+        setCurrentVenuesVisited(metrics.uniqueVenues.current);
+        setCurrentAvgItems(metrics.avgItems.current);
+
+        setTotalSpendChange(metrics.totalSpend.percentChange);
+        setAvgSpendChange(metrics.avgSpend.percentChange);
+        setVenuesVisitedChange(metrics.uniqueVenues.percentChange);
+        setAvgItemsChange(metrics.avgItems.percentChange);
+
+        // setSpendData([...metrics.spendTrend].reverse());
+        const paddedSpendData = [
+          { day: "padding-start", total: 0 },
+          ...metrics.spendTrend.reverse(),
+          { day: "padding-end", total: 0 },
+        ];
+        setSpendData(paddedSpendData);
+
+        setDailyVisits(metrics.dailyVisits);
+      })
+      .catch((error) => {
+        console.error("❌ Error fetching edge metrics:", error);
+        setSpendData([]);
+        setDailyVisits([]);
+      })
+      .finally(() => {
+        setMetricsLoading(false);
+        setSpendLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    hasHourlyTabChild1Animated.current = true;
+  }, []);
+
+  useEffect(() => {
+    hasAnimatedRef.current = true;
+  }, []);
 
   // flag animated tab state
   React.useEffect(() => {
@@ -152,85 +152,89 @@ const UserHome = () => {
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
         <HStack space="md">
-          <View style={{ flex: 1 }}>
-            <Animated.View style={{ flex: 1 }} exiting={FadeOut} entering={FadeIn}>
-              {currentTotalSpend === null ? (
-                <ShimmerCard />
-              ) : (
-                <HourlyCard
-                  icon={DollarSign}
-                  text="Total Spend"
-                  currentUpdate={`$${currentTotalSpend.toFixed(2)}`}
-                  lastUpdate={formatTimeframeLabel(timeframe)}
-                  arrowDownIcon={!totalUp}
-                  arrowUpIcon={totalUp}
-                />
-              )}
-            </Animated.View>
-          </View>
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(0).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={DollarSign}
+                text="Total Spend"
+                currentUpdate={`$${currentTotalSpend?.toFixed(2) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(totalSpendChange ?? 0) > 0}
+                arrowDownIcon={(totalSpendChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
 
-          <View style={{ flex: 1 }}>
-            <Animated.View style={{ flex: 1 }} exiting={FadeOut} entering={FadeIn}>
-              {currentAvgSpend === null ? (
-                <ShimmerCard />
-              ) : (
-                <HourlyCard
-                  icon={DollarSign}
-                  text="Avg Spend"
-                  currentUpdate={`$${currentAvgSpend.toFixed(2)}`}
-                  lastUpdate={formatTimeframeLabel(timeframe)}
-                  arrowDownIcon={!avgSpendUp}
-                  arrowUpIcon={avgSpendUp}
-                />
-              )}
-            </Animated.View>
-          </View>
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(100).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={DollarSign}
+                text="Avg Spend"
+                currentUpdate={`$${currentAvgSpend?.toFixed(2) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(avgSpendChange ?? 0) > 0}
+                arrowDownIcon={(avgSpendChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
         </HStack>
 
         <HStack space="md">
-          <View style={{ flex: 1 }}>
-            <Animated.View style={{ flex: 1 }} exiting={FadeOut} entering={FadeIn}>
-              {currentVenuesVisited === null ? (
-                <ShimmerCard />
-              ) : (
-                <HourlyCard
-                  icon={StoreIcon}
-                  text="Venues Visited"
-                  currentUpdate={`${currentVenuesVisited}`}
-                  lastUpdate={formatTimeframeLabel(timeframe)}
-                  arrowDownIcon={!venuesUp}
-                  arrowUpIcon={venuesUp}
-                />
-              )}
-            </Animated.View>
-          </View>
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(200).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={StoreIcon}
+                text="Visitors"
+                currentUpdate={`${currentVenuesVisited ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(venuesVisitedChange ?? 0) > 0}
+                arrowDownIcon={(venuesVisitedChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
 
-          <View style={{ flex: 1 }}>
-            <Animated.View style={{ flex: 1 }} exiting={FadeOut} entering={FadeIn}>
-              {currentAvgItems === null ? (
-                <ShimmerCard />
-              ) : (
-                <HourlyCard
-                  icon={PackageIcon}
-                  text="Avg Items/Visit"
-                  currentUpdate={`${currentAvgItems.toFixed(1)}`}
-                  lastUpdate={formatTimeframeLabel(timeframe)}
-                  arrowDownIcon={!avgItemsUp}
-                  arrowUpIcon={avgItemsUp}
-                />
-              )}
-            </Animated.View>
-          </View>
+          <Animated.View
+            style={{ flex: 1 }}
+            entering={!hasAnimatedRef.current ? FadeInDown.delay(300).springify().damping(12) : undefined}
+          >
+            {metricsLoading ? (
+              <ShimmerCard />
+            ) : (
+              <HourlyCard
+                icon={PackageIcon}
+                text="Items/Cust"
+                currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`}
+                lastUpdate={formatTimeframeLabel(timeframe)}
+                arrowUpIcon={(avgItemsChange ?? 0) > 0}
+                arrowDownIcon={(avgItemsChange ?? 0) < 0}
+              />
+            )}
+          </Animated.View>
         </HStack>
       </AnimatedVStack>
 
       <VStack className="py-3 rounded-2xl bg-background-100 gap-3 p-3">
         {spendLoading ? (
           <Text className="text-typography-400 text-center my-4">Loading chart…</Text>
+        ) : spendData.length === 0 ? (
+          <Text className="text-typography-400 text-center my-4">No data available</Text>
         ) : (
-          <View style={{ minHeight: 200 }}>
-              <Chart key={chartKey} chartRef={childRefs?.[0].ref} data={spendData} timeframe={timeframe} />
-          </View>
+          <Chart chartRef={childRefs?.[0]?.ref} data={spendData} timeframe={timeframe} />
         )}
       </VStack>
 
