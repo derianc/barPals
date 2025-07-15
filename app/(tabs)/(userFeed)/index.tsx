@@ -13,6 +13,8 @@ import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useUser } from "@/contexts/userContext";
 import LoadingFooter from "@/components/loadingComponent/LoadingFooter";
+import { Trash2, Archive, FileText  } from "lucide-react-native"; 
+import { StyleSheet, Linking } from "react-native";
 
 const userFeed = () => {
 
@@ -101,42 +103,40 @@ const loadReceipts = async (reset = false) => {
     }
   };
 
-  const renderRightActions = (receiptId: number) => (
-    <View
-      style={{
-        height: "100%",
-        justifyContent: "center",
-        alignItems: "flex-end",
-        paddingRight: 8,
+const renderRightActions = (receiptId: number) => (
+   <View style={styles.actionsContainer}>
+    <RectButton
+      style={[styles.actionButton, styles.archive]}
+      onPress={() => handleArchive(receiptId)}
+    >
+      <Archive color="white" size={20} />
+    </RectButton>
+
+    <RectButton
+      style={[styles.actionButton, styles.delete]}
+      onPress={() => handleDelete(receiptId)}
+    >
+      <Trash2 color="white" size={20} />
+    </RectButton>
+  </View>
+);
+
+const renderLeftActions = (receiptUrl: string) => (
+  <View style={styles.container}>
+    <RectButton
+      style={[styles.actionButton, styles.viewReceipt]}
+      onPress={() => {
+        if (receiptUrl && typeof receiptUrl === "string") {
+          Linking.openURL(receiptUrl);
+        } else {
+          console.warn("⚠️ No valid receipt URL to open.");
+        }
       }}
     >
-      <View style={{ gap: 6 }}>
-        <RectButton
-          style={{
-            backgroundColor: "#3B82F6", // default blue
-            paddingVertical: 6,
-            paddingHorizontal: 14,
-            borderRadius: 8,
-          }}
-          onPress={() => handleArchive(receiptId)}
-        >
-          <AppText className="text-white text-xs font-semibold">Archive</AppText>
-        </RectButton>
-
-        <RectButton
-          style={{
-            backgroundColor: "#EF4444", // red
-            paddingVertical: 6,
-            paddingHorizontal: 14,
-            borderRadius: 8,
-          }}
-          onPress={() => handleDelete(receiptId)}
-        >
-          <AppText className="text-white text-xs font-semibold">Delete</AppText>
-        </RectButton>
-      </View>
-    </View>
-  );
+      <FileText color="white" size={20} />
+    </RectButton>
+  </View>
+);
 
   const handleDelete = async (receiptId: number) => {
     try {
@@ -270,6 +270,7 @@ const loadReceipts = async (reset = false) => {
                     if (ref) swipeableRefs.current[receipt.id] = ref;
                   }}
                   renderRightActions={() => renderRightActions(receipt.id)}
+                  renderLeftActions={() => renderLeftActions(receipt.receipt_url)}
                 >
                   <Animated.View
                     entering={FadeInUp.delay(index * 100).springify().damping(12)}
@@ -312,3 +313,35 @@ const loadReceipts = async (reset = false) => {
 };
 
 export default userFeed;
+
+const styles = StyleSheet.create({
+  actionsContainer: {
+    flexDirection: "row", // horizontal layout
+    alignItems: "center",
+    height: "100%",
+    paddingRight: 8,
+    gap: 8,
+  },
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  archive: {
+    backgroundColor: "#3B82F6", // blue
+  },
+  delete: {
+    backgroundColor: "#EF4444", // red
+  },
+  container: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: "100%",
+    paddingLeft: 8,
+  },
+  viewReceipt: {
+    backgroundColor: "#10B981", // teal-green (to distinguish from archive/delete)
+  },
+});

@@ -8,7 +8,7 @@ export * from './sbUserReceiptService'
 export * from './sbOwnerReceiptService'
 
 export async function isReceiptDuplicate(receiptData: TransactionData): Promise<boolean> {
-  
+
   // 🔍 Check for duplicates
   const { data: existing, error: findError } = await supabase
     .from("user_receipts")
@@ -152,6 +152,8 @@ export async function getConsecutiveReceiptDays(userId: string): Promise<number>
 export async function deleteReceiptById(
   receiptId: number
 ): Promise<{ success: boolean; error?: Error }> {
+  console.log(`🔄 Deleting receipt with ID: ${receiptId}`);
+
   // Step 1: Get the receipt_url
   const { data: receipt, error: fetchError } = await supabase
     .from("user_receipts")
@@ -164,22 +166,37 @@ export async function deleteReceiptById(
     return { success: false, error: fetchError ?? new Error("Receipt not found") };
   }
 
-  // Step 2: Extract the file name from the URL
-  // Example URL: https://xyz.supabase.co/storage/v1/object/public/user-receipts/abc123.pdf
-  const urlParts = receipt.receipt_url.split("/");
-  const fileName = urlParts[urlParts.length - 1]; // abc123.pdf
+  console.log("✅ Retrieved receipt:", receipt);
+
+  // Step 2: Extract the full storage path from the URL
+  const pathParts = receipt.receipt_url?.split("/storage/v1/object/public/user-receipts/");
+  let filePath = pathParts?.[1];
+
+  console.log("📂 Raw path extracted from URL:", filePath);
+
+  if (!filePath) {
+    console.error("❌ Invalid file path extracted from URL:", receipt.receipt_url);
+    return { success: false, error: new Error("Invalid file URL format") };
+  }
+
+  // Normalize path
+  filePath = filePath.replace(/^\/+/, "");
+  console.log("📁 Normalized storage path to delete:", filePath);
 
   // Step 3: Delete the file from Supabase Storage
   const { error: storageError } = await supabase.storage
     .from("user-receipts")
-    .remove([fileName]); // must match the path used when uploading
+    .remove([filePath]);
 
   if (storageError) {
     console.error("❌ Failed to delete file from storage:", storageError.message);
+    console.error("🧾 Tried deleting path:", filePath);
     return { success: false, error: storageError };
   }
 
-  // Step 3: Delete the receipt record from the table
+  console.log("✅ Successfully deleted file from storage:", filePath);
+
+  // Step 4: Delete the receipt record from the table
   const { error: deleteError } = await supabase
     .from("user_receipts")
     .delete()
@@ -190,8 +207,11 @@ export async function deleteReceiptById(
     return { success: false, error: deleteError };
   }
 
+  console.log(`✅ Receipt ${receiptId} successfully deleted from DB and storage`);
+
   return { success: true };
 }
+
 
 export async function archiveReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {
   const { error } = await supabase
