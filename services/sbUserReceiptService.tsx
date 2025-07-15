@@ -1,29 +1,35 @@
 import { supabase } from "@/supabase";
 
 // populate user feed
-export async function getAllReceiptsForUser(userId: string): Promise<any[]> {
+export async function getAllReceiptsForUser(
+  userId: string,
+  lastSeenDate: string | null = null,
+  limit = 5
+): Promise<any[]> {
+  let query = supabase
+    .from("user_receipts")
+    .select(`*, user_receipt_items(count)`)
+    .eq("user_id", userId)
+    .order("transaction_date", { ascending: false })
+    .order("transaction_time", { ascending: false })
+    .limit(limit);
 
-    // 2. Query receipts with embedded item count
-    const { data, error } = await supabase
-        .from("user_receipts")
-        .select(`*, user_receipt_items(count)`)
-        .eq("user_id", userId)
-        .order("transaction_date", { ascending: false })
-        .order("transaction_time", { ascending: false });
+  if (lastSeenDate) {
+    query = query.lt("transaction_date", lastSeenDate);
+  }
 
-    if (error) {
-        console.error("❌ Failed to fetch receipts:", error);
-        throw new Error("Failed to fetch user receipts");
-    }
+  const { data, error } = await query;
 
-    // 3. Map item_count into root object
-    const receipts = data.map((receipt: any) => ({
-        ...receipt,
-        item_count: receipt.user_receipt_items[0]?.count ?? 0,
-        isVerified: Math.random() < 0.5,
-    }));
+  if (error) {
+    console.error("❌ Failed to fetch receipts:", error);
+    throw new Error("Failed to fetch user receipts");
+  }
 
-    return receipts;
+  return data.map((receipt: any) => ({
+    ...receipt,
+    item_count: receipt.user_receipt_items[0]?.count ?? 0,
+    isVerified: !!receipt.venue_id,
+  }));
 }
 
 export interface WeekdayVisit {

@@ -13,6 +13,7 @@ import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { getAllReceiptsForVenue } from "@/services/sbOwnerReceiptService";
 import { useVenue } from "@/contexts/venueContex";
+import LoadingFooter from "@/components/loadingComponent/LoadingFooter";
 
 const ownerFeed = () => {
 
@@ -25,23 +26,52 @@ const ownerFeed = () => {
     const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
     const { selectedVenueHash } = useVenue();
 
-    const fetchReceipts = async () => {
+    const pageSize = 5;
+    const [lastSeenDate, setLastSeenDate] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [showSkeleton, setShowSkeleton] = useState(false);
+    const [contentHeight, setContentHeight] = useState(0);
+
+    const loadReceipts = async (reset = false) => {
+        if (loading || (!reset && !hasMore)) return;
+
+        setLoading(true);
+        setShowSkeleton(true);
+
         try {
-            setRefreshing(true);
-            if (selectedVenueHash) {
-                const result = await getAllReceiptsForVenue(selectedVenueHash);
-                setReceipts(result.data);
+            if (!selectedVenueHash) return;
+
+            const cursor = reset ? null : lastSeenDate;
+            const { data: newReceipts, error } = await getAllReceiptsForVenue(selectedVenueHash, cursor, pageSize);
+
+            if (error) throw error;
+
+            if (reset) {
+                setReceipts(newReceipts);
+            } else {
+                setReceipts((prev) => [...prev, ...newReceipts]);
+            }
+
+            if (newReceipts.length < pageSize) {
+                setHasMore(false);
+            }
+
+            if (newReceipts.length > 0) {
+                const last = newReceipts[newReceipts.length - 1];
+                setLastSeenDate(last.transaction_date);
             }
         } catch (err) {
-            console.error("Failed to load receipts", err);
+            console.error("🔴 Error loading venue receipts:", err);
         } finally {
-            setRefreshing(false);
+            setLoading(false);
+            setShowSkeleton(false);
         }
     };
 
     useEffect(() => {
-        fetchReceipts();
-    }, []);
+        if (selectedVenueHash) loadReceipts(true);
+    }, [selectedVenueHash]);
 
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -194,8 +224,32 @@ const ownerFeed = () => {
                 contentContainerClassName="gap-3 px-5"
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={fetchReceipts} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => {
+                            setReceipts([]);
+                            setLastSeenDate(null);
+                            setHasMore(true);
+                            setFilteredReceipts([]);
+                            loadReceipts(true);
+                        }} />
                 }
+                onScroll={({ nativeEvent }) => {
+                    const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+                    const isBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+
+                    if (isBottom && hasMore && !loading) {
+                        loadReceipts();
+                    }
+                }}
+                onContentSizeChange={(w, h) => {
+                    if (h > contentHeight) {
+                        setContentHeight(h);
+                        setTimeout(() => {
+                            loadReceipts();
+                        }, 100);
+                    }
+                }}
             >
                 {filteredReceipts.length === 0 ? (
                     <AppText className="text-center text-typography-300 mt-6">
@@ -244,7 +298,7 @@ const ownerFeed = () => {
                         }
                     })
                 )}
-
+                {loading && hasMore && <LoadingFooter />}
             </ScrollView>
         </VStack>
     );

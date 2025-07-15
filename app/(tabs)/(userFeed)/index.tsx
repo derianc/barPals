@@ -12,6 +12,7 @@ import 'react-native-gesture-handler';
 import { RectButton, } from "react-native-gesture-handler";
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { useUser } from "@/contexts/userContext";
+import LoadingFooter from "@/components/loadingComponent/LoadingFooter";
 
 const userFeed = () => {
 
@@ -24,23 +25,54 @@ const userFeed = () => {
   const [filteredReceipts, setFilteredReceipts] = useState<any[]>([]);
   const { user, rehydrated } = useUser();
 
+  const [lastSeenDate, setLastSeenDate] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showSkeleton, setShowSkeleton] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+
   useEffect(() => {
     if (rehydrated && user) {
-      fetchReceipts(user.id); // pass explicitly
+      loadReceipts(true); // pass explicitly
     }
   }, [rehydrated, user]);
 
-  const fetchReceipts = async (userId: string) => {
-    try {
-      setRefreshing(true);
-      const result = await getAllReceiptsForUser(userId);
-      setReceipts(result);
-    } catch (err) {
-      console.error("Failed to load receipts", err);
-    } finally {
-      setRefreshing(false);
+const pageSize = 5;
+const [hasMore, setHasMore] = useState(true);
+
+const loadReceipts = async (reset = false) => {
+  if (loading || (!reset && !hasMore)) return;
+
+  setLoading(true);
+  setShowSkeleton(true);
+
+  try {
+    if (!user) return;
+
+    const cursor = reset ? null : lastSeenDate;
+    const newReceipts = await getAllReceiptsForUser(user.id, cursor, pageSize);
+
+    if (reset) {
+      setReceipts(newReceipts);
+    } else {
+      setReceipts((prev) => [...prev, ...newReceipts]);
     }
-  };
+
+    if (newReceipts.length < pageSize) {
+      setHasMore(false);
+    }
+
+    if (newReceipts.length > 0) {
+      const last = newReceipts[newReceipts.length - 1];
+      setLastSeenDate(last.transaction_date); // ✅ now safe to update
+    }
+  } catch (err) {
+    console.error("🔴 Error fetching receipts:", err);
+  } finally {
+    setLoading(false);
+    setShowSkeleton(false);
+  }
+};
+
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -105,8 +137,6 @@ const userFeed = () => {
       </View>
     </View>
   );
-
-
 
   const handleDelete = async (receiptId: number) => {
     try {
@@ -190,16 +220,41 @@ const userFeed = () => {
         onSearchChange={setSearchQuery}
       />
       <ScrollView
-        contentContainerClassName="gap-3 px-5"
+        contentContainerClassName="gap-3 px-5 pb-20"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
-              if (user) fetchReceipts(user.id);
+              if (user) {
+                setReceipts([]);             // ✅ Clear old data
+                setLastSeenDate(null);       // ✅ Reset cursor
+                setHasMore(true);            // ✅ Allow more loads
+                setFilteredReceipts([]);     // (Optional) Clear filtered view
+                loadReceipts(true);          // ✅ Fetch fresh
+              }
             }}
           />
         }
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          const isBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+
+          if (isBottom && hasMore && !loading && user) {
+            loadReceipts();
+          }
+        }}
+        onContentSizeChange={(width, height) => {
+          // when content height grows, check again
+          if (height > contentHeight) {
+            setContentHeight(height);
+            setTimeout(() => {
+              // ensure it re-checks scroll position on next tick
+              loadReceipts(); // 🔁 try loading more if we're still at bottom
+            }, 100);
+          }
+        }}
+        scrollEventThrottle={400}
       >
         {filteredReceipts.length === 0 ? (
           <AppText className="text-center text-typography-300 mt-6">
@@ -247,8 +302,10 @@ const userFeed = () => {
               );
             }
           })
+          
         )}
 
+        {loading && hasMore && <LoadingFooter />}
       </ScrollView>
     </VStack>
   );
