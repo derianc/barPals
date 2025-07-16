@@ -179,7 +179,7 @@ const OwnerHome = () => {
             ) : (
               <HourlyCard
                 icon={StoreIcon}
-                text="Visitors"
+                text="Unique Visitors"
                 currentUpdate={`${currentVisitors ?? "--"}`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(visitorsChange ?? 0) > 0}

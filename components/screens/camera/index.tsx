@@ -247,6 +247,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
     try {
       const referenceDate = baseDate ? new Date(baseDate) : new Date();
+      timeString = timeString.replace(/(\d)([AP])$/, "$1$2M").replace(/(\d)([AP]M)$/, "$1 $2");
       const results = chrono.parse(timeString, referenceDate);
 
       if (results.length > 0 && results[0].start.isCertain("hour")) {

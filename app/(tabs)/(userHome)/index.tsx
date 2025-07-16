@@ -199,7 +199,7 @@ const UserHome = () => {
             ) : (
               <HourlyCard
                 icon={StoreIcon}
-                text="Visitors"
+                text="Venues Visited"
                 currentUpdate={`${currentVenuesVisited ?? "--"}`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(venuesVisitedChange ?? 0) > 0}
@@ -217,7 +217,7 @@ const UserHome = () => {
             ) : (
               <HourlyCard
                 icon={PackageIcon}
-                text="Items/Cust"
+                text="Items/Visit"
                 currentUpdate={`${currentAvgItems?.toFixed(1) ?? "--"}`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(avgItemsChange ?? 0) > 0}

@@ -84,11 +84,7 @@ function BottomTabBar(props: BottomTabBarProps) {
                   as={item.icon}
                   size="xl"
                   className={`${
-                    isActive
-                      ? item.icon === TagIcon
-                        ? "fill-primary-800 text-background-0"
-                        : "fill-primary-800 text-primary-800"
-                      : "text-background-500"
+                    isActive ? "text-primary-800" : "text-background-500"
                   }`}
                 />
               )}

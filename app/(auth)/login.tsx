@@ -8,32 +8,122 @@ import { HStack } from "@/components/ui/hstack";
 import { Divider } from "@/components/ui/divider";
 import { Entypo } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { login } from "@/services/sbUserService";
+import { createOrUpdateUserProfile, login } from "@/services/sbUserService";
 import { useUser } from "@/contexts/userContext";
 import { registerForFcmPushNotificationsAsync } from "@/services/fcmNotificationService";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  isErrorWithCode,
+  statusCodes,
+} from '@react-native-google-signin/google-signin'
+import { supabase } from "@/supabase";
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import { Image as RNImage } from "react-native";
+import Constants from "expo-constants";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("derianc@gmail.com");
-  const [password, setPassword] = useState("Test123!");
   const [loading, setLoading] = useState(false);
   const { user, rehydrated } = useUser();
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);  
+  const leftOffset = useSharedValue(-200); // slide in from far left
+  const rightOffset = useSharedValue(200); // slide in from far right
+  const AnimatedImage = Reanimated.createAnimatedComponent(RNImage);
 
-  const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password.");
-      return;
+  const leftAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: withTiming(-35, { duration: 1000 }) }],
+    alignSelf: "center",
+  }));
+
+  const rightAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: withTiming(35, { duration: 1000 }) }],
+    alignSelf: "center",
+  }));
+
+  useEffect(() => {
+    leftOffset.value = withTiming(0, {
+      duration: 2700,
+      easing: Easing.out(Easing.exp),
+    });
+    rightOffset.value = withTiming(0, {
+      duration: 2700,
+      easing: Easing.out(Easing.exp),
+    });
+  }, []);
+
+  useEffect(() => {
+    const isPreview = Constants.expoConfig?.android?.package === 'com.derianc.BarPalsPreview';
+
+    GoogleSignin.configure({
+      webClientId: "951598715886-jmsbgqouev3rfoqeaupa4t7nbohslre2.apps.googleusercontent.com",
+      scopes: ['profile', 'email'],
+      forceCodeForRefreshToken: true,
+    });
+
+    console.log("✅ Google Signin configured for:", isPreview ? "Preview" : "Dev");
+  }, []);
+
+
+   const handleGoogleSignIn = async () => {
+    try{
+      await GoogleSignin.hasPlayServices();
+
+      // 👇 Force account picker every time
+      await GoogleSignin.signOut();
+
+      const response = await GoogleSignin.signIn();
+      // Alert.alert("login response", JSON.stringify(response, null, 2));
+
+      if (isSuccessResponse(response)) {
+        const { idToken, user } = response.data;
+        const { name, email, photo } = user;
+        console.log("user:", JSON.stringify(user, null, 2));
+
+        if (!idToken) {
+          console.error("❌ Google returned null idToken");
+          Alert.alert("Error", "Unable to retrieve ID token from Google.");
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+
+        if (error)
+          console.log("supabase login error", JSON.stringify(error, null, 2))
+
+
+        await createOrUpdateUserProfile(user, data.user?.id!)
+
+      } else {
+        Alert.alert("login error", JSON.stringify(response, null, 2));
+        console.log("google signin was canceled");
+      }
+
     }
-
-    setLoading(true);
-    const { error } = await login(email, password);
-    setLoading(false);
-
-    if (error) {
-      Alert.alert("Sign-in Error", error.message);
-      return;
+    catch (error) {
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.IN_PROGRESS:
+            console.log("Google Signin is in progress");
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            console.log("Play Services are not available")
+            break;
+          default:
+            
+            Alert.alert(error.code + error.message)
+        }
+      }
     }
+    
   };
   
   useEffect(() => {
@@ -61,88 +151,33 @@ export default function LoginPage() {
     return () => clearTimeout(delay);
   }, [rehydrated, user?.id, hasRedirected]);
 
+  // GoogleSignin.configure({
+  //   scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+  //   webClientId: '951598715886-jmsbgqouev3rfoqeaupa4t7nbohslre2.apps.googleusercontent.com',
+  // })
+
   return (
-    <LinearGradient
-      colors={["#6A11CB", "#2575FC"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#6A11CB", "#2575FC"]} style={styles.container}>
       <VStack style={styles.inner}>
+        {/* 🥳 Animated Icons */}
+        <AnimatedImage
+          source={require("@/assets/icons/appIcon.png")}
+          style={[styles.iconImage, leftAnimatedStyle]}
+        />
+        <AnimatedImage
+          source={require("@/assets/icons/appIcon.png")}
+          style={[styles.iconImage, rightAnimatedStyle]}
+        />
+
         <Text style={styles.header}>Welcome!</Text>
+        <Text style={styles.subtext}>Sign in to get started</Text>
 
-        {/* Email Input */}
-        <View style={styles.inputWrapper}>
-          <HStack style={styles.iconRow}>
-            <Entypo name="mail" size={20} color="#fff" />
-            <Input variant="underlined" size="md" className="flex-1">
-              <InputField
-                placeholder="Email"
-                placeholderTextColor="#eee"
-                value={email}
-                onChangeText={setEmail}
-                style={styles.underlineInput}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </Input>
-          </HStack>
-        </View>
-
-        {/* Password Input */}
-        <View style={styles.inputWrapper}>
-          <HStack style={styles.iconRow}>
-            <Entypo name="lock" size={20} color="#fff" />
-            <Input variant="underlined" size="md" className="flex-1">
-              <InputField
-                placeholder="Password"
-                placeholderTextColor="#eee"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-                style={styles.underlineInput}
-              />
-            </Input>
-          </HStack>
-        </View>
-
-        {/* Forgot Password (optional) */}
-        <TouchableOpacity>
-          <Text style={styles.forgot}>Forgot password?</Text>
-        </TouchableOpacity>
-
-        {/* Sign In Button */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleSignIn}>
-          <Text style={styles.loginButtonText}>Sign In</Text>
-        </TouchableOpacity>
-
-        {/* Link to Signup */}
-        <HStack style={styles.signupRow}>
-          <Text style={styles.signupText}>Don't have an account?</Text>
-          <TouchableOpacity onPress={() => router.push("/signup")}>
-            <Text style={styles.signupLink}>Sign Up</Text>
-          </TouchableOpacity>
-        </HStack>
-
-        {/* Divider with OR */}
-        <HStack style={styles.dividerRow}>
-          <Divider style={styles.divider} />
-          <Text style={styles.orText}>Or</Text>
-          <Divider style={styles.divider} />
-        </HStack>
-
-        {/* Social Login Icons (if needed) */}
-        <Text style={styles.socialPrompt}>Sign In with Social Networks</Text>
         <HStack style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialIconWrapper}>
-            <Image
-              source={require("@/assets/icons/google.png")}
-              style={styles.socialIcon}
-            />
+          <TouchableOpacity style={styles.socialIconWrapper} onPress={handleGoogleSignIn}>
+            <Image source={require("@/assets/icons/google.png")} style={styles.socialIcon} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialIconWrapper}>
-            <Image
-              source={require("@/assets/icons/facebook.png")}
-              style={styles.socialIcon}
-            />
+            <Image source={require("@/assets/icons/facebook.png")} style={styles.socialIcon} />
           </TouchableOpacity>
         </HStack>
       </VStack>
@@ -155,86 +190,26 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 30,
     gap: 20,
   },
   header: {
-    fontSize: 32,
+    fontSize: 36,
     color: "#fff",
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 10,
+    marginTop: 40,
   },
-  iconRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  underlineInput: {
-    flex: 1,
-    color: "#fff",
+  subtext: {
     fontSize: 16,
-    paddingVertical: 8,
-  },
-  inputWrapper: {
-    backgroundColor: "transparent",
-    borderRadius: 8,
-  },
-  forgot: {
-    alignSelf: "flex-end",
-    color: "#fff",
-    fontSize: 13,
-    marginTop: -10,
-  },
-  loginButton: {
-    backgroundColor: "#9C27B0",
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  signupRow: {
-    justifyContent: "center",
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  signupText: {
-    color: "#fff",
-    fontSize: 13,
-  },
-  signupLink: {
-    color: "#B2EBF2",
-    fontSize: 13,
-    fontWeight: "bold",
-    marginLeft: 4,
-  },
-  dividerRow: {
-    alignItems: "center",
-    gap: 8,
-    marginTop: 10,
-  },
-  divider: {
-    flex: 1,
-    backgroundColor: "#fff",
-    height: 1,
-  },
-  orText: {
-    color: "#fff",
-    fontSize: 12,
-  },
-  socialPrompt: {
-    color: "#fff",
-    fontSize: 14,
+    color: "#eee",
+    marginBottom: 30,
     textAlign: "center",
-    marginTop: 10,
   },
   socialRow: {
-    justifyContent: "center",
-    gap: 20,
+    flexDirection: "row",
+    gap: 30,
     marginTop: 12,
   },
   socialIcon: {
@@ -255,5 +230,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
+  },
+  emojiIcon: {
+    fontSize: 42,
+    position: "absolute",
+    top: 120,
+  },
+  iconImage: {
+    width: 140,
+    height: 140,
+    position: "absolute",
+    top: 280,
+    resizeMode: "contain",
   },
 });

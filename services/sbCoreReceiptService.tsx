@@ -1,7 +1,7 @@
 import { supabase } from "@/supabase";
 import { TransactionData } from "@/data/models/transactionModel";
 import { startOfDay, subDays, isSameDay, parse, format } from "date-fns";
-import { generateVenueHash, parseAddressComponents, sanitizeText } from "@/utilities";
+import { sanitizeText } from "@/utilities";
 import { geocodeAddress, matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export * from './sbUserReceiptService'
@@ -116,8 +116,6 @@ export async function insertReceiptDetails(userId: string, receiptData: Transact
 }
 
 export async function getConsecutiveReceiptDays(userId: string): Promise<number> {
-
-  // 2. Fetch distinct transaction dates (deduped per day)
   const { data, error } = await supabase
     .from("user_receipts")
     .select("transaction_date")
@@ -129,23 +127,22 @@ export async function getConsecutiveReceiptDays(userId: string): Promise<number>
     return 0;
   }
 
-  const uniqueDates = Array.from(
-    new Set(
-      data.map((r) => startOfDay(new Date(r.transaction_date)).toISOString())
-    )
-  ).map((d) => new Date(d));
+  console.log("📅 data", data);
 
-  // 3. Count consecutive days starting from today
+  // Use a Set of local date strings, adjusted to avoid time zone offset issues
+  const localDateStrings = new Set(
+    data.map((r) => new Date(`${r.transaction_date}T12:00:00`).toDateString())
+  );
+
   let count = 0;
-  let currentDay = startOfDay(new Date());
+  let currentDay = subDays(new Date(), 1); // exclude today
 
-  while (
-    uniqueDates.some((date) => isSameDay(date, currentDay))
-  ) {
+  while (localDateStrings.has(currentDay.toDateString())) {
     count++;
     currentDay = subDays(currentDay, 1);
   }
 
+  console.log("🔥 Active Streak (excluding today):", count);
   return count;
 }
 
@@ -211,7 +208,6 @@ export async function deleteReceiptById(
 
   return { success: true };
 }
-
 
 export async function archiveReceiptById(receiptId: number): Promise<{ success: boolean; error?: Error }> {
   const { error } = await supabase

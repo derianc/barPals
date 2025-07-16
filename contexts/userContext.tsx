@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export interface UserContextType {
   user: UserProfileData | null;
   rehydrated: boolean;
+  
 }
 
 export const UserContext = createContext<UserContextType>({
@@ -36,6 +37,8 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const restore = async () => {
       const { data } = await supabase.auth.getSession();
+      console.log("🔁 [UserContext] restore():", data.session);
+      
       await loadUserProfile(data.session?.user?.id);
       setRehydrated(true);
     };

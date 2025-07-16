@@ -71,7 +71,7 @@ export async function getProfileById(userId: string): Promise<{ data: UserProfil
     .from("profiles")
     .select("*")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     console.error("❌ Failed to get user profile:", error?.message);
@@ -174,3 +174,21 @@ export async function registerForExpoPushNotificationsAsync(userId: string) {
   }
 };
 
+export async function createOrUpdateUserProfile(user: any, userId: string) {
+  const { error } = await supabase.from("profiles").upsert(
+    {
+      id: userId,
+      email: user.email,
+      full_name: user.name,
+      avatar_url: user.photo,
+      is_active: true,
+    },
+    { onConflict: 'id' } // Use 'id' as the primary key to upsert
+  );
+
+  if (error) {
+    console.error("❌ Failed to upsert profile:", error.message);
+  } else {
+    console.log("✅ Profile upserted successfully");
+  }
+}
