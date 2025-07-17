@@ -17,7 +17,7 @@ import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader
 import { format } from "date-fns";
 import DatePicker from "react-native-date-picker";
 import TargetAudienceSection from "@/components/screens/ownerOffer/targetAudienceComponent";
-import { submitOffer } from "@/services/sbOfferService";
+import { submitOffer } from "@/services/sbOwnerOfferService";
 // import { getVenueForUser } from "@/services/sbVenueService";
 import { useUser } from "@/contexts/userContext";
 import { useRouter } from "expo-router";

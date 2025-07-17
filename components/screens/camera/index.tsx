@@ -103,7 +103,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       (typeof value === "string" && value.toUpperCase().trim() === "UNKNOWN") ||
       (typeof value === "string" && value.trim() === "")
     ) {
-      console.warn(`Invalid receipt: ${label} is invalid (${value})`);
+      console.warn(`Invalid receipt: ${label} is missing or invalid (${value})`);
       return { valid: false, reason: `${label} is missing or invalid` };
     }
   }
@@ -382,16 +382,23 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       </RBSheet>
 
       {/* Show preview image while loading */}
-      {loading && (
+      {loading && photoUri && (
         <View style={styles.spinnerOverlay}>
-          <LottieView
-            source={statusAnimations[statusKey]}
-            autoPlay
-            loop
-            style={{ width: 120, height: 120 }}
-          />
+          {/* Preview image fills background */}
+          <Image source={{ uri: photoUri }} style={styles.previewImage} />
+
+          {/* Lottie animation centered over image */}
+          <View style={styles.loaderOverlay}>
+            <LottieView
+              source={statusAnimations[statusKey]}
+              autoPlay
+              loop
+              style={styles.loader}
+            />
+          </View>
         </View>
       )}
+
     </View>
   );
 }
@@ -491,20 +498,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
-  },
-
+  }, 
   previewImage: {
-    width: "90%",
-    height: "90%",
+    width: "100%",
+    height: "100%",
     resizeMode: "cover",
-    opacity: 0.9,
+    opacity: 1,
+    zIndex: 10,
+  },
+  spinnerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.8)", // optional dark overlay
+    zIndex: 20,
   },
 
-  spinnerOverlay: {
+  loaderOverlay: {
     position: "absolute",
     justifyContent: "center",
     alignItems: "center",
-    width: "100%",
-    height: "100%",
+    zIndex: 25,
+  },
+
+  loader: {
+    width: 120,
+    height: 120,
   },
 });

@@ -5,7 +5,7 @@ import { Plus } from "lucide-react-native";
 import { useUser } from "@/contexts/userContext";
 import { useVenue } from "@/contexts/venueContex";
 import OfferCard from "@/components/screens/ownerOffer/offerCard";
-import { getOffersForVenue } from "@/services/sbOfferService";
+import { getOffersForVenue } from "@/services/sbOwnerOfferService";
 import { Fab, FabIcon } from "@/components/ui/fab";
 import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader";
 

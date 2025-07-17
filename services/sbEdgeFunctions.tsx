@@ -146,7 +146,7 @@ export async function processOffer(offerId: string) {
   const token = session?.data?.session?.access_token;
 
   if (!token) {
-    console.error("🚫 Cannot simulate users — no access token found");
+    console.error("🚫 Cannot process offer — no access token found");
     return;
   }
 
@@ -160,7 +160,11 @@ export async function processOffer(offerId: string) {
       body: JSON.stringify({ offerId })
     });
 
-    const result = await res.json();
+    const rawText = await res.text();
+    console.log("📥 sendOfferNotification response:", rawText);
+
+    const result = JSON.parse(rawText);
+
     if (!res.ok) {
       console.error("❌ Failed to process offer:", result);
     } else {
@@ -190,7 +194,10 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
       body: JSON.stringify({ userId, latitude, longitude })
     });
 
-    const result = await res.json();
+    const rawText = await res.text();
+    console.log("📥 checkNearbyOffers response:", rawText);
+
+    const result = JSON.parse(rawText);
 
     if (!res.ok) {
       console.error("❌ Edge function returned an error:", result);
@@ -204,12 +211,7 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
 }
 
 export async function getUserHomeMetrics(userId: string, start: Date | null, end: Date | null) {
-  // console.log("📤 Calling getUserHomeMetrics with:", {
-  //   userId,
-  //   start: start?.toISOString?.() ?? null,
-  //   end: end?.toISOString?.() ?? null,
-  // });
-
+  
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
@@ -238,8 +240,10 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
       }
     );
 
-    const result = await res.json();
-    // console.log("getUserHomeMetrics:", result)
+    const rawText = await res.text();
+    console.log("📥 getUserHomeMetrics response:", rawText);
+
+    const result = JSON.parse(rawText);
 
     if (!res.ok) {
       console.error("❌ Edge function returned an error:", result);
@@ -254,12 +258,7 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
 }
 
 export async function getOwnerHomeMetrics(venueHash: string, start: Date | null, end: Date | null) {
-  // console.log("📤 Calling getOwnerHomeMetrics with:", {
-  //   venueHash,
-  //   start: start?.toISOString?.() ?? null,
-  //   end: end?.toISOString?.() ?? null,
-  // });
-
+  
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
@@ -288,8 +287,10 @@ export async function getOwnerHomeMetrics(venueHash: string, start: Date | null,
       }
     );
 
-    const result = await res.json();
-    // console.log("getOwnerHomeMetrics:", result)
+    const rawText = await res.text();
+    console.log("📥 getOwnerHomeMetrics response:", rawText);
+
+    const result = JSON.parse(rawText);
 
     if (!res.ok) {
       console.error("❌ Edge function returned an error:", result);
