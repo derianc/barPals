@@ -5,16 +5,25 @@ import {
   StyleSheet,
   View,
   Text,
+  Image,
 } from "react-native";
 import { fetchUserOffers } from "@/services/sbUserOfferService";
 import { useUser } from "@/contexts/userContext";
 import UserOfferHeader from "@/components/shared/custom-header/userOfferHeader";
 import UserOfferCard from "@/components/screens/userOffer/userOfferCard";
+import FullScreenQrModal from "@/components/screens/userOffer/fullScreenQrModal";
 
 const UserOffers = () => {
   const { user } = useUser();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [qrVisible, setQrVisible] = useState(false);
+  const [qrValue, setQrValue] = useState("");
+
+  const handleOpenQr = (payload: any) => {
+    setQrValue(JSON.stringify(payload));
+    setQrVisible(true);
+  };
 
   const loadOffers = async () => {
     if (!user?.id) return;
@@ -38,32 +47,42 @@ const UserOffers = () => {
           <RefreshControl refreshing={loading} onRefresh={loadOffers} />
         }
       >
-        {offers.map((offer) => (
-          <UserOfferCard
-            key={offer.id}
-            title={offer.title}
-            description={offer.description}
-            image_url={offer.image_url}
-            valid_until={offer.valid_until}
-            venue_name={offer.venue_name}
-            onPress={() => {
-              console.log("Offer tapped:", offer.id);
-            }}
-          />
-        ))}
+        {user?.id &&
+          offers.map((offer) => (
+            <UserOfferCard
+              key={offer.id}
+              title={offer.title}
+              offerId={offer.id}
+              userId={user.id}
+              description={offer.description}
+              image_url={offer.image_url}
+              valid_until={offer.valid_until}
+              venue_name={offer.venue_name}
+              onPress={() =>
+                handleOpenQr({
+                  title: offer.title,
+                  offerId: offer.id,
+                  userId: user.id,
+                  valid_until: offer.valid_until,
+                })
+              }
+            />
+          ))}
 
         {!loading && offers.length === 0 && (
           <View style={styles.emptyContainer}>
-            <UserOfferCard
-              title="No Offers Yet"
-              description="You’ll see offers from venues here when you're eligible!"
-              valid_until={new Date().toISOString()}
-              venue_name=""
-              image_url="https://cdn-icons-png.flaticon.com/512/4076/4076549.png"
-              onPress={() => {}}
+            <Image
+              source={{ uri: "https://cdn-icons-png.flaticon.com/512/4076/4076549.png" }}
+              style={styles.emptyImage}
+              resizeMode="contain"
             />
+            <Text style={styles.emptyTitle}>No Offers Yet</Text>
+            <Text style={styles.emptyDescription}>
+              You’ll see offers from venues here when you’re eligible!
+            </Text>
           </View>
         )}
+        <FullScreenQrModal visible={qrVisible} onClose={() => setQrVisible(false)} value={qrValue} />
       </ScrollView>
     </View>
   );
@@ -81,7 +100,28 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   emptyContainer: {
-    paddingTop: 24,
     alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    marginTop: 60,
+  },
+  emptyImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#F9FAFB", // text-white
+    marginBottom: 8,
+    fontFamily: "dm-sans-bold",
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: "center",
+    color: "#9CA3AF", // text-gray-400
+    paddingHorizontal: 24,
+    fontFamily: "dm-sans",
   },
 });

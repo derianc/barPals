@@ -85,14 +85,14 @@ const Chart = ({ chartRef, data, timeframe, title }: ChartProps) => {
   //
   // 5) Determine a default title if none provided
   //
-  let defaultTitle = "Chart";
-  if (timeframe === "7days") {
-    defaultTitle = "Last 7 Days Spend";
-  } else if (timeframe === "30days") {
-    defaultTitle = "Last 30 Days Spend";
-  } else if (timeframe === "all") {
-    defaultTitle = "All Time Spend";
-  }
+let defaultTitle = "Points Chart";
+if (timeframe === "7days") {
+  defaultTitle = "Weekly Points Tracker";
+} else if (timeframe === "30days") {
+  defaultTitle = "Monthly Points Tracker";
+} else if (timeframe === "all") {
+  defaultTitle = "Total Points Tracker";
+}
 
   //
   // 6) Calculate chart width so that horizontal scroll is possible:

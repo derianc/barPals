@@ -111,30 +111,3 @@ export async function getNearbyUserLocations(
 
   return data ?? [];
 }
-
-// export async function checkNearbyOffers(userId: string, coords: { latitude: number; longitude: number }) {
-//   const { latitude, longitude } = coords;
-
-//   const { data: offers, error } = await supabase.rpc("get_geo_eligible_offers", {
-//     user_id: userId,
-//     user_lat: latitude,
-//     user_lng: longitude
-//   });
-
-//   if (error) {
-//     console.error("❌ Error checking nearby offers:", error);
-//     return;
-//   }
-
-//   for (const offer of offers) {
-//     // Send push notification
-//     await sendNotification(userId, offer.title, offer.description);
-
-//     // Mark as notified so it doesn't repeat
-//     await supabase
-//       .from("user_offer_candidates")
-//       .update({ is_notified: true })
-//       .eq("user_id", userId)
-//       .eq("offer_id", offer.id);
-//   }
-// }

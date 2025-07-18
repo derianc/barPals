@@ -10,6 +10,7 @@ export async function matchReceiptToVenue(payload: {
   postal: string | null;
 }) {
   try {
+    await supabase.auth.getSession();
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
 
@@ -60,6 +61,7 @@ export async function sendNotification(
 }
 
 export async function simulateUserMovementNearVenue(venue: { latitude: number; longitude: number }, count = 10) {
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
@@ -90,11 +92,12 @@ export async function simulateUserMovementNearVenue(venue: { latitude: number; l
 }
 
 export async function deleteTestLocations() {
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
   if (!token) {
-    console.error("🚫 Cannot simulate users — no access token found");
+    console.error("🚫 Cannot delete users — no access token found");
     return;
   }
 
@@ -117,6 +120,7 @@ export async function deleteTestLocations() {
 }
 
 export async function geocodeAddress(address: string) {
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session.data.session?.access_token;
 
@@ -142,6 +146,7 @@ export async function geocodeAddress(address: string) {
 }
 
 export async function processOffer(offerId: string) {
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
@@ -175,12 +180,13 @@ export async function processOffer(offerId: string) {
   }
 }
 
-export async function checkNearbyOffers(userId: string, latitude: number, longitude: number ) {
+export async function checkNearbyOffers(userId: string) {
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
   if (!token) {
-    console.error("🚫 Cannot simulate users — no access token found");
+    console.error("🚫 Cannot check Nearby Offers — no access token found");
     return;
   }
 
@@ -191,7 +197,7 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`, // ✅ required for JWT-enforced functions
       },
-      body: JSON.stringify({ userId, latitude, longitude })
+      body: JSON.stringify({ userId })
     });
 
     const rawText = await res.text();
@@ -200,7 +206,7 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
     const result = JSON.parse(rawText);
 
     if (!res.ok) {
-      console.error("❌ Edge function returned an error:", result);
+      console.error("❌ checkNearbyOffers returned an error:", result);
       return;
     }
 
@@ -211,7 +217,7 @@ export async function checkNearbyOffers(userId: string, latitude: number, longit
 }
 
 export async function getUserHomeMetrics(userId: string, start: Date | null, end: Date | null) {
-  
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
@@ -258,7 +264,7 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
 }
 
 export async function getOwnerHomeMetrics(venueHash: string, start: Date | null, end: Date | null) {
-  
+  await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 

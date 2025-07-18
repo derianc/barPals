@@ -13,6 +13,7 @@ import { LocationTracker } from "@/components/locationTracker";
 import { NotificationHandler } from "@/components/notifications/NotificationHandler";
 import * as Notifications from 'expo-notifications';
 import { VenueProvider } from "@/contexts/venueContex";
+import { ActivityIndicator, View } from "react-native";
 
 const LayoutInner = () => {
   const publicRoutes = ["/login", "/signup", "/"];
@@ -50,7 +51,19 @@ const LayoutInner = () => {
     }
   }, [user, rehydrated, pathname]);
 
-  if (!fontsLoaded || !rehydrated) return null;
+  console.group("🧬 Layout Load Check");
+  console.log("fontsLoaded:", fontsLoaded);
+  console.log("rehydrated:", rehydrated);
+  console.log("user:", user);
+  console.groupEnd();
+
+  if (!fontsLoaded || !rehydrated) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <GluestackUIProvider mode={colorMode}>

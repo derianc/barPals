@@ -74,25 +74,41 @@ const OfferCard = ({ offer }: { offer: Offer }) => {
       )}
 
       <HStack style={styles.metaRow}>
-        <HStack style={styles.metaItem}>
-          <Icon as={CalendarCheck} size={"lg"} style={styles.metaIcon} />
-          <Text style={styles.metaText}>
-            {format(parseISO(valid_from), "MMM d")} →{" "}
-            {format(parseISO(valid_until), "MMM d")}
-          </Text>
-        </HStack>
+        <View style={styles.validityContainer}>
+          <View style={styles.side}>
+            <HStack style={styles.sideInner}>
+              <Icon as={CalendarCheck} size="sm" style={styles.sideIcon} />
+              <View style={styles.dateTimeStack}>
+                <Text style={styles.dateText}>{format(parseISO(valid_from), "MMM d")}</Text>
+                <Text style={styles.timeText}>{format(parseISO(valid_from), "h:mm a")}</Text>
+              </View>
+            </HStack>
+          </View>
+
+          <Text style={styles.arrow}>→</Text>
+
+          <View style={styles.side}>
+            <HStack style={styles.sideInner}>
+              <Icon as={CalendarCheck} size="sm" style={styles.sideIcon} />
+              <View style={styles.dateTimeStack}>
+                <Text style={styles.dateText}>{format(parseISO(valid_until), "MMM d")}</Text>
+                <Text style={styles.timeText}>{format(parseISO(valid_until), "h:mm a")}</Text>
+              </View>
+            </HStack>
+          </View>
+        </View>
 
         <Divider orientation="vertical" style={styles.divider} />
 
         <HStack style={styles.metaItem}>
-          <Icon as={Clock} size={"lg"} style={styles.metaIcon} />
+          <Icon as={Clock} size="lg" style={styles.metaIcon} />
           <Text style={styles.metaText}>
             Created {format(parseISO(created_at), "MMM d, yyyy")}
           </Text>
         </HStack>
       </HStack>
 
-      {formattedScheduledAt  && (
+      {formattedScheduledAt && (
         <HStack style={styles.metaItem}>
           <Icon as={CalendarClock} size={"lg"} style={styles.metaIcon} />
           <Text style={styles.metaText}>
@@ -167,18 +183,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 6,
-  },
   metaIcon: {
     color: "#9CA3AF",
   },
@@ -186,12 +190,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#9CA3AF",
     fontFamily: "dm-sans-light",
-  },
-  divider: {
-    height: 48,
-    width: 1,
-    backgroundColor: "#374151",
-    marginHorizontal: 12,
   },
   targetSection: {
     marginTop: 4,
@@ -207,6 +205,70 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 8,
+  },
+  arrowContainer: {
+    paddingHorizontal: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#F9FAFB", // white
+    fontFamily: "dm-sans-medium",
+  },
+  timeText: {
+    fontSize: 13,
+    color: "#D1D5DB", // light gray
+    fontFamily: "dm-sans",
+  },
+  metaRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 16,
+  },
+
+  validityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flexShrink: 1,
+    maxWidth: "65%", // Ensures space for created date
+  },
+  side: {
+    flexShrink: 1,
+  },
+  sideInner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+  },
+  sideIcon: {
+    color: "#9CA3AF",
+    marginTop: 8,
+  },
+  dateTimeStack: {
+    flexDirection: "column",
+  },
+  arrow: {
+    fontSize: 18,
+    color: "#9CA3AF",
+    marginHorizontal: 4,
+    alignSelf: "center",
+  },
+  divider: {
+    height: "100%",
+    width: 1,
+    backgroundColor: "#374151",
+    marginHorizontal: 8,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
   },
 });
 

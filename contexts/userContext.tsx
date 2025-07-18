@@ -25,19 +25,30 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    const result = await getProfileById(userId);
-    if (result?.data) {
-      setUser(result.data);
-      await AsyncStorage.setItem("currentUserId", userId);
-    } else {
+    try {
+      const result = await getProfileById(userId);
+      if (result?.data) {
+        setUser(result.data);
+        await AsyncStorage.setItem("currentUserId", userId);
+      } else {
+        console.warn("⚠️ No profile data found");
+        setUser(null);
+      }
+    } catch (err) {
+      console.error("❌ Failed to load user profile", err);
       setUser(null);
     }
   };
 
   useEffect(() => {
     const restore = async () => {
-      const { data } = await supabase.auth.getSession();
+      await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
       console.log("🔁 [UserContext] restore():", data.session);
+
+      if (error) {
+        console.error("❌ Failed to get session", error);
+      }
       
       await loadUserProfile(data.session?.user?.id);
       setRehydrated(true);
@@ -45,9 +56,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
 
     restore();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log(`🌀 Auth state changed: ${_event}`, session);
-      await loadUserProfile(session?.user?.id);
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🌀 Auth state changed: ${event}`, session);
+
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        await loadUserProfile(session?.user?.id);
+        setRehydrated(true); // ✅ In case restore missed it
+      }
+
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setRehydrated(true);
+      }
     });
 
     return () => {

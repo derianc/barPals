@@ -61,16 +61,13 @@ const CreateOfferScreen = () => {
         maxDistance: distance
       };
 
-      const validFromUtc = new Date(validFrom.getTime() - validFrom.getTimezoneOffset() * 60000);
-      const validUntilUtc = new Date(validUntil.getTime() - validUntil.getTimezoneOffset() * 60000);
-
       const offer = await submitOffer({
         venueId,
         title,
         description,
         imageUrl: "", 
-        validFrom: validFromUtc,
-        validUntil: validUntilUtc,
+        validFrom,
+        validUntil,
         targetCriteria,
         scheduledAt: sendNow ? new Date() : validFrom, 
       });

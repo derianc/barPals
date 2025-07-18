@@ -7,6 +7,46 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:951598715886:android:e5e73d6646d421a0a9b4ff",
+        "android_client_info": {
+          "package_name": "com.derianc.BarPals"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "951598715886-d9f44jnlqimguksmhfnlk88bhmiubl8f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.derianc.BarPals",
+            "certificate_hash": "65a1c2523d07b7c521a73c6f90bba4eac9a3ae56"
+          }
+        },
+        {
+          "client_id": "951598715886-jmsbgqouev3rfoqeaupa4t7nbohslre2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsJNsE4yATqFgy0zZ1XhsdWccMsw0xFNQ"
+        },
+        {
+          "current_key": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "951598715886-jmsbgqouev3rfoqeaupa4t7nbohslre2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:951598715886:android:977caa681012f6e9a9b4ff",
         "android_client_info": {
           "package_name": "com.derianc.BarPalsDev"
@@ -27,6 +67,9 @@
         }
       ],
       "api_key": [
+        {
+          "current_key": "AIzaSyAsJNsE4yATqFgy0zZ1XhsdWccMsw0xFNQ"
+        },
         {
           "current_key": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
         }
@@ -55,7 +98,7 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.derianc.BarPalsPreview",
-            "certificate_hash": "94cca0bd136323dad3aec48cc04c441e78c36e60"
+            "certificate_hash": "b04af0e350f0b6b9115a87fff66bd7c1c0ce2668"
           }
         },
         {
@@ -64,6 +107,9 @@
         }
       ],
       "api_key": [
+        {
+          "current_key": "AIzaSyAsJNsE4yATqFgy0zZ1XhsdWccMsw0xFNQ"
+        },
         {
           "current_key": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw"
         }

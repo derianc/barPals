@@ -38,7 +38,7 @@ export function LocationTracker() {
             console.log("📡 Foreground location:", location.coords);
             await saveUserLocation(user.id, location);
 
-            await checkNearbyOffers(user.id, location.coords.latitude, location.coords.longitude);
+            await checkNearbyOffers(user.id);
           }
         );
 

@@ -37,7 +37,7 @@ const onEvent = async () => {
         if (location) {
             await saveUserLocation(userId, location);
 
-            await checkNearbyOffers(userId, location.coords.latitude, location.coords.longitude);
+            await checkNearbyOffers(userId);
         } else {
             console.warn("🚫 No fallback location available");
         }

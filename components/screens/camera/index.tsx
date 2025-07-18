@@ -130,6 +130,9 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       });
       if (!photo.path) return;
 
+      // 🔦 Turn off torch after capture
+      setTorch('off');
+
       // Show preview immediately
       const fileUri = `file://${photo.path}`;
       onCapture(fileUri);
@@ -283,24 +286,39 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
     // 1) Extract the "Items" array field (if it exists)
     const items = receipt?.documents[0]?.fields?.Items as DocumentArrayField
 
-    let merchantName = getContent("MerchantName");
+    let merchantName = "";
     const merchantAddress = getContent("MerchantAddress");
+
+    if (!merchantAddress) {
+      console.warn("⚠️ No merchant address found — skipping");
+      return {
+        merchantName: "",
+        merchantAddress: "",
+        transactionDate: "",
+        transactionTime: "",
+        total: 0,
+        createdAt: new Date().toISOString(),
+        receiptUri: imageUrl,
+        customerName: "",
+        transaction: "",
+        duplicateKey: "",
+        Items: [],
+      };
+    }
 
     // get geoDetails from provided address
     const geo = await geocodeAddress(merchantAddress);
 
-    // Lookup venue name if merchantName is blank but address is provided
-    console.log("🔍 Merchant Name:", merchantName);
-    if (!merchantName && merchantAddress) {
-      console.log("🔍 Merchant Address provided, looking up venue by hash:", geo.formatted);
-      
-      const venue = await findVenueByHash(geo.venueHash);
-      console.log("🔍 Found venue by address:", venue);
-      if (venue?.name) {
-        merchantName = venue.name;
-      }
+    // see if venue has been registered
+    const venue = await findVenueByHash(geo.venueHash);
+    if (venue && venue.name) {
+      console.log("Using receipt name from venue")
+      merchantName = venue.name;
     }
-
+    else {
+      console.log("Using receipt name from image scan")
+      merchantName = getContent("MerchantName") ?? "UNKNOWN";
+    }
     const rawDate = getContent("TransactionDate");
     const rawTime = getContent("TransactionTime");
 

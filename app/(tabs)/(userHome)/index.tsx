@@ -8,7 +8,7 @@ import HourlyCard from "@/components/screens/userHome/hourly-card";
 import Chart from "@/components/screens/userHome/chart";
 import { WeatherTabContext } from "@/contexts/user-home-context";
 import Animated, { FadeIn, FadeInDown, FadeOut } from "react-native-reanimated";
-import { DollarSign, StoreIcon, PackageIcon } from "lucide-react-native";
+import { Zap, BadgeCheck, StoreIcon, PackageIcon } from "lucide-react-native";
 import VisitBarCard from "@/components/screens/userHome/daily-visit-card";
 import ShimmerCard from "@/components/screens/shimmer-card/shimmer-card";
 import { View } from "react-native";
@@ -148,6 +148,12 @@ const UserHome = () => {
   const venuesUp = (venuesVisitedChange ?? 0) > 0;
   const avgItemsUp = (avgItemsChange ?? 0) > 0;
 
+  function convertDollarsToPoints(amount: number | null): number {
+    if (amount == null) return 0;
+    const multiplier = 10; 
+    return Math.round(amount * multiplier);
+  }
+
   return (
     <VStack space="md" className="px-4 pb-5 bg-background-0">
       <AnimatedVStack space="md">
@@ -160,9 +166,9 @@ const UserHome = () => {
               <ShimmerCard />
             ) : (
               <HourlyCard
-                icon={DollarSign}
-                text="Total Spend"
-                currentUpdate={`$${currentTotalSpend?.toFixed(2) ?? "--"}`}
+                icon={BadgeCheck}
+                text="Total Points"
+                currentUpdate={`${convertDollarsToPoints(currentTotalSpend)?.toFixed(0) ?? "--"} pts`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(totalSpendChange ?? 0) > 0}
                 arrowDownIcon={(totalSpendChange ?? 0) < 0}
@@ -178,9 +184,9 @@ const UserHome = () => {
               <ShimmerCard />
             ) : (
               <HourlyCard
-                icon={DollarSign}
-                text="Avg Spend"
-                currentUpdate={`$${currentAvgSpend?.toFixed(2) ?? "--"}`}
+                icon={BadgeCheck}
+                text="Avg Points / Visit"
+                currentUpdate={`${convertDollarsToPoints(currentAvgSpend)?.toFixed(0) ?? "--"} pts`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(avgSpendChange ?? 0) > 0}
                 arrowDownIcon={(avgSpendChange ?? 0) < 0}
@@ -199,7 +205,7 @@ const UserHome = () => {
             ) : (
               <HourlyCard
                 icon={StoreIcon}
-                text="Venues Visited"
+                text="Unique Venues"
                 currentUpdate={`${currentVenuesVisited ?? "--"}`}
                 lastUpdate={formatTimeframeLabel(timeframe)}
                 arrowUpIcon={(venuesVisitedChange ?? 0) > 0}
