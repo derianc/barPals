@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ScrollView,
   RefreshControl,
@@ -7,11 +7,12 @@ import {
   Text,
   Image,
 } from "react-native";
-import { fetchUserOffers } from "@/services/sbUserOfferService";
+import { fetchUserOffers, updateSeenAtForOffers } from "@/services/sbUserOfferService";
 import { useUser } from "@/contexts/userContext";
 import UserOfferHeader from "@/components/shared/custom-header/userOfferHeader";
 import UserOfferCard from "@/components/screens/userOffer/userOfferCard";
 import FullScreenQrModal from "@/components/screens/userOffer/fullScreenQrModal";
+import { useFocusEffect } from "@react-navigation/native";
 
 const UserOffers = () => {
   const { user } = useUser();
@@ -19,6 +20,7 @@ const UserOffers = () => {
   const [loading, setLoading] = useState(false);
   const [qrVisible, setQrVisible] = useState(false);
   const [qrValue, setQrValue] = useState("");
+  const [offersLoaded, setOffersLoaded] = useState(false);
 
   const handleOpenQr = (payload: any) => {
     setQrValue(JSON.stringify(payload));
@@ -30,12 +32,21 @@ const UserOffers = () => {
     setLoading(true);
     const results = await fetchUserOffers(user.id);
     setOffers(results);
+    setOffersLoaded(true);
     setLoading(false);
   };
 
   useEffect(() => {
     loadOffers();
   }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id && offers.length > 0) {
+        updateSeenAtForOffers(user.id, offers)
+      }
+    }, [user?.id, offersLoaded, offers])
+  );
 
   return (
     <View style={styles.container}>

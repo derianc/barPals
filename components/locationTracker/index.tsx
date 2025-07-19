@@ -4,7 +4,6 @@ import { initBackgroundFetch } from "./backgroundPolling";
 import { saveUserLocation } from "@/services/sbLocationService";
 import { UserContext } from "@/contexts/userContext";
 import BackgroundFetch from "react-native-background-fetch"; // ✅ add at the top
-import { checkNearbyOffers } from "@/services/sbEdgeFunctions";
 
 export function LocationTracker() {
   const { user, rehydrated } = useContext(UserContext);
@@ -37,8 +36,6 @@ export function LocationTracker() {
           async (location) => {
             console.log("📡 Foreground location:", location.coords);
             await saveUserLocation(user.id, location);
-
-            await checkNearbyOffers(user.id);
           }
         );
 

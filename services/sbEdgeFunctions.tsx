@@ -173,21 +173,21 @@ export async function processOffer(offerId: string) {
     if (!res.ok) {
       console.error("❌ Failed to process offer:", result);
     } else {
-      console.log("✅ Offer processed:", result.message);
+      console.log("✅ Offer processed:", result);
     }
   } catch (err) {
     console.error("❌ Error calling edge function:", err);
   }
 }
 
-export async function checkNearbyOffers(userId: string) {
+export async function checkNearbyOffers(userId: string): Promise<any[] | null> {
   await supabase.auth.getSession();
   const session = await supabase.auth.getSession();
   const token = session?.data?.session?.access_token;
 
   if (!token) {
     console.error("🚫 Cannot check Nearby Offers — no access token found");
-    return;
+    return null;
   }
 
   try {
@@ -201,18 +201,20 @@ export async function checkNearbyOffers(userId: string) {
     });
 
     const rawText = await res.text();
-    console.log("📥 checkNearbyOffers response:", rawText);
+    // console.log("📥 checkNearbyOffers response:", rawText);
 
     const result = JSON.parse(rawText);
 
     if (!res.ok) {
       console.error("❌ checkNearbyOffers returned an error:", result);
-      return;
+      return null;
     }
 
-    console.log("✅ Offer processed:", result.message);
+    console.log("✅ Check Nearby Offers:", result);
+    return result;
   } catch (error) {
     console.error("❌ Unexpected error calling checkNearbyOffers:", error);
+    return null;
   }
 }
 

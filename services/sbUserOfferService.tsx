@@ -79,4 +79,34 @@ export async function fetchUserOffers(userId: string) {
   return transformedOffers;
 }
 
+export async function updateSeenAtForOffers(userId: string, offers: { id: number }[]) {
+  console.log("📤 [updateSeenAtForOffers] Called with:", {
+    userId,
+    offerCount: offers?.length,
+  });
+
+  if (!userId || !offers?.length) {
+    console.warn("⚠️ [updateSeenAtForOffers] Skipped — missing userId or empty offers array");
+    return;
+  }
+
+  console.log("🧾 Raw offers input:", offers);
+  const offerIds = offers.map((offer) => offer.id);
+  console.log("📝 [updateSeenAtForOffers] Offer IDs to update:", offerIds);
+
+  console.log("🚀 [updateSeenAtForOffers] Updating seen_at...");
+
+  const { error, data } = await supabase
+    .from("user_offer_candidates")
+    .update({ seen_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .in("offer_id", offerIds);
+
+  if (error) {
+    console.error("❌ [updateSeenAtForOffers] Failed to update seen_at:", error);
+  } else {
+    console.log("✅ [updateSeenAtForOffers] seen_at updated successfully");
+  }
+}
+
 

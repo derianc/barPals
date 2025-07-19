@@ -15,6 +15,7 @@ import {
   User,
 } from "lucide-react-native";
 import { useUser } from "@/contexts/userContext";
+import { useOfferNotificationSubscription } from "@/hooks/useOfferNotificationSubscription";
 
 interface TabItem {
   name: string;
@@ -28,24 +29,24 @@ function BottomTabBar(props: BottomTabBarProps) {
   const { user } = useUser();
   const avatarUrl = user?.avatar_url ?? null;
   const userType = user?.role === "owner" ? "owner" : "user";
-
+  const { notificationCount } = useOfferNotificationSubscription();
 
   const tabItems: TabItem[] =
     userType === "owner"
       ? [
-          { name: "(ownerHome)", label: "Home", path: "(ownerHome)", icon: Home },
-          { name: "(ownerFeed)", label: "Feed", path: "(ownerFeed)/index", icon: List },
-          { name: "(ownerMap)", label: "Map", path: "(ownerMap)/index", icon: MapIcon },
-          { name: "(ownerOffers)", label: "Offers", path: "(ownerOffers)/index", icon: TagIcon },
-          { name: "(ownerProfile)", label: "Profile", path: "(ownerProfile)/index", icon: User },
-        ]
+        { name: "(ownerHome)", label: "Home", path: "(ownerHome)", icon: Home },
+        { name: "(ownerFeed)", label: "Feed", path: "(ownerFeed)/index", icon: List },
+        { name: "(ownerMap)", label: "Map", path: "(ownerMap)/index", icon: MapIcon },
+        { name: "(ownerOffers)", label: "Offers", path: "(ownerOffers)/index", icon: TagIcon },
+        { name: "(ownerProfile)", label: "Profile", path: "(ownerProfile)/index", icon: User },
+      ]
       : [
-          { name: "(userHome)", label: "Home", path: "(userHome)", icon: Home },
-          { name: "(userFeed)", label: "Feed", path: "(userFeed)/index", icon: List },
-          { name: "camera", label: "Camera", path: "camera", icon: CameraIcon },
-          { name: "(userOffers)", label: "Offers", path: "(userOffers)/index", icon: TagIcon },
-          { name: "(userProfile)", label: "Settings", path: "(userProfile)/index", icon: User },
-        ];
+        { name: "(userHome)", label: "Home", path: "(userHome)", icon: Home },
+        { name: "(userFeed)", label: "Feed", path: "(userFeed)/index", icon: List },
+        { name: "camera", label: "Camera", path: "camera", icon: CameraIcon },
+        { name: "(userOffers)", label: "Offers", path: "(userOffers)/index", icon: TagIcon },
+        { name: "(userProfile)", label: "Settings", path: "(userProfile)/index", icon: User },
+      ];
 
   return (
     <Box className="bg-background-0">
@@ -61,6 +62,7 @@ function BottomTabBar(props: BottomTabBarProps) {
           const isActive = props.state.routeNames[props.state.index] === item.path;
           const isProfileTab =
             item.name === "(userProfile)" || item.name === "(ownerProfile)";
+          const isOffersTab = item.name === "(userOffers)"
 
           return (
             <Pressable
@@ -68,31 +70,60 @@ function BottomTabBar(props: BottomTabBarProps) {
               className="flex-1 items-center justify-center"
               onPress={() => props.navigation.navigate(item.path)}
             >
-              {isProfileTab && avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 13,
-                    borderWidth: 2,
-                    borderColor: isActive ? "#6A11CB" : "#9CA3AF",
-                  }}
-                />
-              ) : (
-                <Icon
-                  as={item.icon}
-                  size="xl"
-                  className={`${
-                    isActive ? "text-primary-800" : "text-background-500"
-                  }`}
-                />
-              )}
+              <Box style={{ position: "relative", alignItems: "center" }}>
+                {isProfileTab && avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      borderWidth: 2,
+                      borderColor: isActive ? "#6A11CB" : "#9CA3AF",
+                    }}
+                  />
+                ) : (
+                  <Icon
+                    as={item.icon}
+                    size="xl"
+                    className={`${isActive ? "text-primary-800" : "text-background-500"
+                      }`}
+                  />
+                )}
+
+                {/* 🔢 Badge for Offers tab */}
+                {isOffersTab && notificationCount > 0 && (
+                  <Box
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -12,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: "red",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <Text
+                      size="2xs"
+                      style={{
+                        color: "white",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </Text>
+                  </Box>
+                )}
+              </Box>
+
               <Text
                 size="xs"
-                className={`mt-1 font-medium ${
-                  isActive ? "text-primary-800" : "text-background-500"
-                }`}
+                className={`mt-1 font-medium ${isActive ? "text-primary-800" : "text-background-500"
+                  }`}
               >
                 {item.label}
               </Text>
