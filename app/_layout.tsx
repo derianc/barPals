@@ -57,13 +57,13 @@ const LayoutInner = () => {
   console.log("user:", user);
   console.groupEnd();
 
-  if (!fontsLoaded || !rehydrated) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  // if (!fontsLoaded || !rehydrated) {
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+  //       <ActivityIndicator size="large" />
+  //     </View>
+  //   );
+  // }
 
   return (
     <GluestackUIProvider mode={colorMode}>
