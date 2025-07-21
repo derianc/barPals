@@ -28,13 +28,13 @@ export default function Index() {
       return;
     }
 
-    console.log("✅ Logged in user:", user);
+    // console.log("✅ Logged in user:", user);
 
     if (user.role === "owner") {
-      console.log("👑 Redirecting to /ownerHome...");
+      // console.log("👑 Redirecting to /ownerHome...");
       router.replace("/(tabs)/(ownerHome)");
     } else {
-      console.log("🙋‍♂️ Redirecting to /userHome...");
+      // console.log("🙋‍♂️ Redirecting to /userHome...");
       router.replace("/(tabs)/(userHome)");
     }
   }, [user, rehydrated]);

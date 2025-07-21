@@ -18,7 +18,7 @@ export function LocationTracker() {
 
     const startTracking = async () => {
       try {
-        console.log("🚀 Starting background location tracking...");
+        // console.log("🚀 Starting background location tracking...");
         await initBackgroundFetch();
 
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -34,12 +34,12 @@ export function LocationTracker() {
             distanceInterval: 50,
           },
           async (location) => {
-            console.log("📡 Foreground location:", location.coords);
+            // console.log("📡 Foreground location:", location.coords);
             await saveUserLocation(user.id, location);
           }
         );
 
-        console.log("✅ Foreground tracking initialized");
+        // console.log("✅ Foreground tracking initialized");
 
       } catch (err) {
         console.error("❌ Error in startTracking:", err);

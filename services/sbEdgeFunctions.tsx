@@ -133,7 +133,7 @@ export async function geocodeAddress(address: string) {
     body: JSON.stringify({ address }),
   });
 
-  console.log("response", response);
+  // console.log("response", response);
 
   if (!response.ok) {
     const error = await response.json();
@@ -235,7 +235,7 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
   };
 
   try {
-    console.log("📡 Sending POST request to getUserHomeMetrics...");
+    // console.log("📡 Sending POST request to getUserHomeMetrics...");
     const res = await fetch(
       "https://pgswimjajpjupnafjosl.supabase.co/functions/v1/getUserHomeMetrics",
       {
@@ -249,7 +249,7 @@ export async function getUserHomeMetrics(userId: string, start: Date | null, end
     );
 
     const rawText = await res.text();
-    console.log("📥 getUserHomeMetrics response:", rawText);
+    // console.log("📥 getUserHomeMetrics response:", rawText);
 
     const result = JSON.parse(rawText);
 

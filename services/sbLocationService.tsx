@@ -23,7 +23,7 @@ export async function saveUserLocation(userId: string, location: Location.Locati
     }
 
     if (recent) {
-      console.log("⏱️ Skipping save — already updated within last 10 minutes");
+      // console.log("⏱️ Skipping save — already updated within last 10 minutes");
       return;
     }
 

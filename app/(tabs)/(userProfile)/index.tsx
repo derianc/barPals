@@ -5,7 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Text} from "react-native";
+  Text
+} from "react-native";
 //import * as DocumentPicker from 'expo-document-picker';
 import { VStack } from "@/components/ui/vstack";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
@@ -76,7 +77,7 @@ const UserProfileDetails = () => {
   }
 
   return (
-    <VStack space="md" className="flex-1 bg-background-0">  
+    <VStack space="md" className="flex-1 bg-background-0">
       <UserProfileHeader />
 
       {/* Overlapping Avatar */}
@@ -89,15 +90,11 @@ const UserProfileDetails = () => {
         ) : (
           <View style={styles.avatarImage} />
         )}
-
-        <TouchableOpacity style={styles.cameraButton} >
-          <Camera size={16} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Username + Join Date */}
       <View style={styles.profileSummary}>
-        <Text style={styles.userName}>@{user?.username}</Text>
+        <Text style={styles.userName}>{user?.full_name}</Text>
         <Text style={styles.joinDate}>
           <Icon as={Calendar} size="sm" className="text-typography-500" />
           Joined{" "}
@@ -122,7 +119,7 @@ const UserProfileDetails = () => {
       />
     </VStack>
 
-    
+
   );
 };
 
@@ -147,64 +144,54 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#6A11CB",
   },
-  cameraButton: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    backgroundColor: "#1f2937",
-    borderRadius: 14,
-    padding: 6,
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
   profileSummary: {
-  marginTop: 80,
-  alignItems: "center",
-},
-userName: {
-  fontSize: 18,
-  fontWeight: "bold",
-  color: "#F9FAFB",
-},
-joinDate: {
-  fontSize: 13,
-  color: "#6B7280",
-  marginTop: 4,
-},
+    marginTop: 80,
+    alignItems: "center",
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#F9FAFB",
+  },
+  joinDate: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 4,
+  },
 
-accountCard: {
-  backgroundColor: "#F3F4F6", // soft gray
-  marginTop: 24,
-  marginHorizontal: 20,
-  borderRadius: 16,
-  padding: 16,
-},
-accountTitle: {
-  fontSize: 14,
-  fontWeight: "bold",
-  color: "#374151",
-  marginBottom: 12,
-},
-accountRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 16,
-},
-accountLabel: {
-  fontSize: 14,
-  color: "#4B5563",
-},
-input: {
-  backgroundColor: "#fff",
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  fontSize: 14,
-  color: "#111827",
-  minWidth: 160,
-  elevation: 1,
-},
+  accountCard: {
+    backgroundColor: "#F3F4F6", // soft gray
+    marginTop: 24,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+  },
+  accountTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  accountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  accountLabel: {
+    fontSize: 14,
+    color: "#4B5563",
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    color: "#111827",
+    minWidth: 160,
+    elevation: 1,
+  },
 
 
 });

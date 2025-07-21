@@ -58,15 +58,13 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    const isPreview = Constants.expoConfig?.android?.package === 'com.derianc.BarPalsPreview';
-
     GoogleSignin.configure({
       webClientId: "951598715886-jmsbgqouev3rfoqeaupa4t7nbohslre2.apps.googleusercontent.com",
       scopes: ['profile', 'email'],
       forceCodeForRefreshToken: true,
     });
 
-    console.log("✅ Google Signin configured for:", isPreview ? "Preview" : "Dev");
+    console.log("✅ Google Signin configured for:", Constants.expoConfig?.android?.package);
   }, []);
 
 

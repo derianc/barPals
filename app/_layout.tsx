@@ -14,6 +14,7 @@ import { NotificationHandler } from "@/components/notifications/NotificationHand
 import * as Notifications from 'expo-notifications';
 import { VenueProvider } from "@/contexts/venueContex";
 import { ActivityIndicator, View } from "react-native";
+import * as Updates from "expo-updates";
 
 const LayoutInner = () => {
   const publicRoutes = ["/login", "/signup", "/"];
@@ -21,7 +22,7 @@ const LayoutInner = () => {
   const { user, rehydrated } = useContext(UserContext);
   const router = useRouter();
   const pathname = usePathname();
-  
+  const [reloadTimeoutReached, setReloadTimeoutReached] = useState(false);
 
   const [fontsLoaded] = useFonts({
     "dm-sans-regular": DMSans_400Regular,
@@ -51,19 +52,38 @@ const LayoutInner = () => {
     }
   }, [user, rehydrated, pathname]);
 
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!fontsLoaded || !rehydrated) {
+        console.warn("⚠️ App stuck in loading state — forcing reload.");
+        setReloadTimeoutReached(true);
+      }
+    }, 3000); // 3 seconds timeout
+
+    return () => clearTimeout(timeout);
+  }, [fontsLoaded, rehydrated]);
+
+  useEffect(() => {
+    if (reloadTimeoutReached) {
+      Updates.reloadAsync(); // force reload entire app
+    }
+  }, [reloadTimeoutReached]);
+
+
+
   console.group("🧬 Layout Load Check");
   console.log("fontsLoaded:", fontsLoaded);
   console.log("rehydrated:", rehydrated);
-  console.log("user:", user);
+  console.log("user:", JSON.stringify(user).slice(0, 51), "...}");
   console.groupEnd();
 
-  // if (!fontsLoaded || !rehydrated) {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-  //       <ActivityIndicator size="large" />
-  //     </View>
-  //   );
-  // }
+  if (!fontsLoaded || !rehydrated) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <GluestackUIProvider mode={colorMode}>

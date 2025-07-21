@@ -127,7 +127,7 @@ export async function getConsecutiveReceiptDays(userId: string): Promise<number>
     return 0;
   }
 
-  console.log("📅 data", data);
+  // console.log("📅 data", data);
 
   // Use a Set of local date strings, adjusted to avoid time zone offset issues
   const localDateStrings = new Set(
@@ -135,14 +135,14 @@ export async function getConsecutiveReceiptDays(userId: string): Promise<number>
   );
 
   let count = 0;
-  let currentDay = subDays(new Date(), 1); // exclude today
+  let currentDay = subDays(new Date(), 0); // include today
 
   while (localDateStrings.has(currentDay.toDateString())) {
     count++;
     currentDay = subDays(currentDay, 1);
   }
 
-  console.log("🔥 Active Streak (excluding today):", count);
+  // console.log("🔥 Active Streak (excluding today):", count);
   return count;
 }
 

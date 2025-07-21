@@ -10,7 +10,7 @@ export function useOfferNotificationSubscription() {
   const channelRef = useRef<any>(null);
 
   const fetchUnseenOffers = async (context: string) => {
-    console.log(`📥 [${context}] Fetching unseen offers...`);
+    // console.log(`📥 [${context}] Fetching unseen offers...`);
     const { data, error } = await supabase
       .from("user_offer_candidates")
       .select("id")
@@ -22,7 +22,7 @@ export function useOfferNotificationSubscription() {
       return;
     }
 
-    console.log(`✅ [${context}] Unseen offers: ${data.length}`);
+    // console.log(`✅ [${context}] Unseen offers: ${data.length}`);
     setNotificationCount(data.length);
   };
 

@@ -44,7 +44,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     const restore = async () => {
       await supabase.auth.getSession();
       const { data, error } = await supabase.auth.getSession();
-      console.log("🔁 [UserContext] restore():", data.session);
+      console.log("🔁 [UserContext] restore():", JSON.stringify(data.session).slice(0, 50), "...}");
 
       if (error) {
         console.error("❌ Failed to get session", error);
@@ -57,7 +57,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     restore();
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`🌀 Auth state changed: ${event}`, session);
+      console.log(`🌀 Auth state changed: ${event}`, JSON.stringify(session).slice(0, 50) + "...}");
 
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         await loadUserProfile(session?.user?.id);

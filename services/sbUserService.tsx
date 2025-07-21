@@ -165,7 +165,7 @@ export async function registerForExpoPushNotificationsAsync(userId: string) {
     if (updateError) {
       console.error("❌ Failed to update device_token:", updateError);
     } else {
-      console.log("✅ device_token updated successfully");
+      // console.log("✅ device_token updated successfully");
     }
 
   } catch (error: any) {
@@ -189,6 +189,6 @@ export async function createOrUpdateUserProfile(user: any, userId: string) {
   if (error) {
     console.error("❌ Failed to upsert profile:", error.message);
   } else {
-    console.log("✅ Profile upserted successfully");
+    // console.log("✅ Profile upserted successfully");
   }
 }

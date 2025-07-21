@@ -60,7 +60,7 @@ export async function initBackgroundFetch() {
         onTimeout
     );
 
-    console.log("✅ BackgroundFetch initialized");
+    // console.log("✅ BackgroundFetch initialized");
 }
 
 // ✅ Register headless task once, not re-calling init

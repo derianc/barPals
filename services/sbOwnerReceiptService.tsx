@@ -8,7 +8,7 @@ export async function getAllReceiptsForVenue(
   try {
     let query = supabase
       .from("user_receipts")
-      .select("*")
+      .select("*, user_receipt_items(count)")
       .eq("venue_hash", venueHash)
       .order("transaction_date", { ascending: false })
       .order("transaction_time", { ascending: false })
@@ -25,7 +25,15 @@ export async function getAllReceiptsForVenue(
       return { data: [], error };
     }
 
-    return { data: data ?? [], error: null };
+    // return { data: data ?? [], error: null };
+    return {
+      data: data.map((receipt: any) => ({
+        ...receipt,
+        item_count: receipt.user_receipt_items[0]?.count ?? 0,
+        isVerified: !!receipt.venue_id,
+      })),
+      error: null,
+    };
   } catch (err) {
     console.error("❌ Unexpected error in getAllReceiptsForVenue:", err);
     return { data: [], error: err as Error };
