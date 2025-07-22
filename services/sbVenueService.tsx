@@ -1,6 +1,5 @@
 import { supabase } from "@/supabase";
 import { Venue } from "@/types/Venue";
-import { generateVenueHash, sanitizeText } from "@/utilities";
 import { matchReceiptToVenue } from "./sbEdgeFunctions";
 
 export async function getVenuesForProfile(userId: string): Promise<Venue[]> {

@@ -15,14 +15,16 @@ import * as Notifications from 'expo-notifications';
 import { VenueProvider } from "@/contexts/venueContex";
 import { ActivityIndicator, View } from "react-native";
 import * as Updates from "expo-updates";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LayoutInner = () => {
-  const publicRoutes = ["/login", "/signup", "/"];
+  const publicRoutes = ["/login", "/signup", "/", "/onboardingScreen"];
   const { colorMode } = useContext(ThemeContext) as ThemeContextType;
   const { user, rehydrated } = useContext(UserContext);
   const router = useRouter();
   const pathname = usePathname();
   const [reloadTimeoutReached, setReloadTimeoutReached] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   const [fontsLoaded] = useFonts({
     "dm-sans-regular": DMSans_400Regular,
@@ -39,6 +41,36 @@ const LayoutInner = () => {
       lightColor: '#FF231F7C',
     });
   }, []);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      // await AsyncStorage.removeItem("onboarding_complete")
+      const flag = await AsyncStorage.getItem("onboarding_complete");
+
+      // ✅ If we're already on the onboarding screen, skip redirect
+      if (!flag) {
+        const isAlreadyOnOnboarding = pathname.includes("onboarding");
+        if (isAlreadyOnOnboarding) {
+          setOnboardingChecked(true);
+          return;
+        }
+
+        console.log("🚀 First install detected → showing onboarding");
+        setTimeout(() => {
+          router.replace("/(tabs)/onboardingScreen");
+        }, 10);
+        return;
+      }
+
+      setOnboardingChecked(true);
+    };
+
+    if (!onboardingChecked && rehydrated && fontsLoaded) {
+      checkOnboarding();
+    }
+  }, [rehydrated, fontsLoaded, onboardingChecked, pathname]);
+
+
 
   useEffect(() => {
     if (!rehydrated) return;
@@ -69,15 +101,13 @@ const LayoutInner = () => {
     }
   }, [reloadTimeoutReached]);
 
-
-
   console.group("🧬 Layout Load Check");
   console.log("fontsLoaded:", fontsLoaded);
   console.log("rehydrated:", rehydrated);
   console.log("user:", JSON.stringify(user).slice(0, 51), "...}");
   console.groupEnd();
 
-  if (!fontsLoaded || !rehydrated) {
+  if (!fontsLoaded || !rehydrated || !onboardingChecked) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />

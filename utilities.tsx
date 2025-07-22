@@ -1,20 +1,3 @@
-import * as Crypto from "expo-crypto";
-
-export async function generateVenueHash(address: string): Promise<string> {
-  const cleaned = sanitizeText(address) ?? "";                  // remove \n, control chars, etc.
-  console.log("normalized before hash:", cleaned);
-
-  const sanitized = sanitizeAddress(cleaned) ?? "";             // final lowercase, alphanumeric
-  console.log("sanitized before hash:", sanitized);
-
-  const addressHash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    sanitized
-  );
-
-  return addressHash;
-}
-
 export function sanitizeText(input?: string | null): string | null {
   if (!input) return null;
   const sanitizedText = input

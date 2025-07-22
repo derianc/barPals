@@ -17,8 +17,8 @@ import OwnerOfferHeader from "@/components/shared/custom-header/ownerOfferHeader
 
 import * as ImagePicker from "expo-image-picker";
 import { analyzeReceipt } from "@/services/formRecognizerService";
-import { parseAddressComponents, sanitizeText, generateVenueHash } from "@/utilities";
-import { uploadVenueImage, createVenueWithOwner, isVenueDuplicate } from "@/services/sbVenueService";
+import {sanitizeText } from "@/utilities";
+import { createVenueWithOwner, isVenueDuplicate } from "@/services/sbVenueService";
 import { geocodeAddress } from "@/services/sbEdgeFunctions";
 import { uploadReceipt } from "@/services/sbFileService";
 

@@ -16,7 +16,8 @@
     "build-preview": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=preview expo prebuild && eas build --profile preview --platform android",
     "build-prod": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=production expo prebuild && eas build --profile production --platform android",
     "publish-preview": "yarn bump-version && eas update --branch preview",
-    "publish-dev": "yarn bump-version && eas update --branch dvelopment"
+    "publish-dev": "yarn bump-version && eas update --branch development",
+    "publish-prod": "yarn bump-version && eas build --platform android --profile production --auto-submit"
   },
   "jest": {
     "preset": "jest-expo"
@@ -58,14 +59,13 @@
     "@google-cloud/documentai": "^9.1.0",
     "@legendapp/motion": "^2.4.0",
     "@notifee/react-native": "^9.1.8",
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-community/slider": "4.5.6",
     "@react-native-firebase/app": "^22.2.1",
     "@react-native-firebase/messaging": "^22.2.1",
     "@react-native-google-signin/google-signin": "^15.0.0",
     "@react-navigation/bottom-tabs": "^7.0.0",
-    "@react-navigation/native": "^7.0.0",
     "@supabase/supabase-js": "^2.49.9",
     "babel-plugin-module-resolver": "^5.0.2",
     "chrono-node": "^2.8.3",
@@ -82,7 +82,7 @@
     "expo-dev-client": "~5.2.0",
     "expo-document-picker": "^12.0.2",
     "expo-font": "~13.3.1",
-    "expo-haptics": "~14.1.4",
+    "expo-haptics": "^14.1.4",
     "expo-image": "^2.0.5",
     "expo-image-picker": "~16.1.4",
     "expo-linear-gradient": "~14.1.5",

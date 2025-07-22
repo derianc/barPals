@@ -34,6 +34,9 @@
       "env": {
         "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
         "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
+      },
+      "android": {
+        "buildType": "app-bundle"
       }
     }
   },
@@ -41,6 +44,9 @@
     "production": {
       "ios": {
         "appleId": "derianc@gmail.com"
+      },
+      "android": {
+        "track": "internal"
       }
     }
   }
