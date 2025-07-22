@@ -2,6 +2,7 @@ import BackgroundFetch from "react-native-background-fetch";
 import * as Location from "expo-location";
 import { saveUserLocation } from "@/services/sbLocationService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { checkNearbyOffers } from "@/services/sbEdgeFunctions";
 
 const onEvent = async () => {
     try {
@@ -35,6 +36,9 @@ const onEvent = async () => {
         }
         if (location) {
             await saveUserLocation(userId, location);
+
+            // check for qualifying nearby offers
+            await checkNearbyOffers(userId);
         } else {
             console.warn("🚫 No fallback location available");
         }

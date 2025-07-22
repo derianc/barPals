@@ -15,7 +15,6 @@ import { Bell, LogOut, MapPin, Store } from "lucide-react-native";
 import { logout, updateUserProfile } from "@/services/sbUserService";
 import { useRouter } from "expo-router";
 import ModalDropdown from 'react-native-modal-dropdown';
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
 import { useVenue } from "@/contexts/venueContex";
 import { Venue } from "@/types/Venue";
