@@ -28,6 +28,8 @@ import * as chrono from "chrono-node";
 import { format as formatDateFns } from "date-fns";
 import { geocodeAddress } from "@/services/sbEdgeFunctions";
 import LottieView from "lottie-react-native";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as FileSystem from "expo-file-system";
 
 type CameraViewProps = {
   onCapture: (uri: string) => void;
@@ -125,9 +127,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
     try {
       // 1) Take picture (no base64; we'll upload the file itself)
-      const photo = await cameraRef.current.takePhoto({
-        flash: flash,
-      });
+      const photo = await cameraRef.current.takePhoto({ flash: flash, });
       if (!photo.path) return;
 
       // 🔦 Turn off torch after capture
@@ -135,13 +135,31 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
       // Show preview immediately
       const fileUri = `file://${photo.path}`;
-      onCapture(fileUri);
-      setPhotoUri(fileUri);
+
+      // 🧠 Compress and resize
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        fileUri,
+        [{ resize: { width: 1000 } }],
+        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      const resizedUri = manipulatedImage.uri;
+      console.log("📦 Resized image:", resizedUri);
+
+      // 🧹 Delete original full-size image to save space
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (deleteErr) {
+        console.warn("🧹 Could not delete original image:", deleteErr);
+      }
+
+      onCapture(resizedUri);
+      setPhotoUri(resizedUri);
       setLoading(true);
 
       // 2) Upload local file to storage → get public URL
       setStatusKey("upload");
-      const publicUrl = await uploadReceipt(fileUri, "user-receipts");
+      const publicUrl = await uploadReceipt(resizedUri, "user-receipts");
 
       // 3) Call analyzeReceipt(documentUrl: string)
       setStatusKey("analyze");
@@ -170,7 +188,6 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
 
       // 5) Save to Supabase
-      // setStatusKey("save");
       const isInsertSuccessful = await insertReceiptDetails(user.id, txData);
       if (isInsertSuccessful) {
         setStatusKey("success");
@@ -352,7 +369,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
 
   return (
     <View style={styles.container}>
-      {device && isFocused && hasPermission === true && (
+      {device && isFocused && hasPermission === true && !photoUri && (
         <Camera
           ref={cameraRef}
           style={StyleSheet.absoluteFill}
