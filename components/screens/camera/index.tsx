@@ -188,6 +188,7 @@ export default function CameraComponent({ onCapture }: CameraViewProps) {
       }
 
       // 5) Save to Supabase
+      // setStatusKey("save");
       const isInsertSuccessful = await insertReceiptDetails(user.id, txData);
       if (isInsertSuccessful) {
         setStatusKey("success");
