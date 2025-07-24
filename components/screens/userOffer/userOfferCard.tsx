@@ -54,17 +54,22 @@ const UserOfferCard: React.FC<UserOfferCardProps> = ({
 
         {/* QR code area */}
         <View style={styles.qrWrapper}>
-          <QRCode
-            value={JSON.stringify({
-              title,
-              offerId,
-              userId,
-              valid_until
-            })}
-            size={48}
-            color="#ffffff"
-            backgroundColor="#1F2937"
-          />
+          <TouchableOpacity
+            onPress={() => onPress?.()} // 🔗 callback from parent
+            activeOpacity={0.8}
+          >
+            <QRCode
+              value={JSON.stringify({
+                title,
+                offerId,
+                userId,
+                valid_until,
+              })}
+              size={48}
+              color="#ffffff"
+              backgroundColor="#1F2937"
+            />
+          </TouchableOpacity>
         </View>
       </HStack>
     </TouchableOpacity>

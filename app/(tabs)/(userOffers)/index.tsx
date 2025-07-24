@@ -18,13 +18,13 @@ const UserOffers = () => {
   const { user } = useUser();
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [qrVisible, setQrVisible] = useState(false);
-  const [qrValue, setQrValue] = useState("");
   const [offersLoaded, setOffersLoaded] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
 
-  const handleOpenQr = (payload: any) => {
-    setQrValue(JSON.stringify(payload));
-    setQrVisible(true);
+  const handleShowQr = (offer: any) => {
+    setSelectedOffer(offer);
+    setQrModalVisible(true);
   };
 
   const loadOffers = async () => {
@@ -69,14 +69,15 @@ const UserOffers = () => {
               image_url={offer.image_url}
               valid_until={offer.valid_until}
               venue_name={offer.venue_name}
-              onPress={() =>
-                handleOpenQr({
-                  title: offer.title,
-                  offerId: offer.id,
-                  userId: user.id,
-                  valid_until: offer.valid_until,
-                })
-              }
+              onPress={() => handleShowQr({
+                title: offer.title,
+                offerId: offer.id,
+                userId: user.id,
+                description: offer.description,
+                image_url: offer.image_url,
+                venue_name: offer.venue_name,
+                valid_until: offer.valid_until,
+              })}
             />
           ))}
 
@@ -93,7 +94,21 @@ const UserOffers = () => {
             </Text>
           </View>
         )}
-        <FullScreenQrModal visible={qrVisible} onClose={() => setQrVisible(false)} value={qrValue} />
+        {selectedOffer && (
+          <FullScreenQrModal
+            visible={qrModalVisible}
+            value={JSON.stringify({
+              offerId: selectedOffer.offerId,
+              userId: selectedOffer.userId,
+              valid_until: selectedOffer.valid_until,
+            })}
+            offer={selectedOffer}
+            onClose={() => {
+              setQrModalVisible(false);
+              setSelectedOffer(null); // optional: clear selection
+            }}
+          />
+        )}
       </ScrollView>
     </View>
   );
