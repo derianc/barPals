@@ -1,10 +1,9 @@
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
-import { Platform, Image, View } from "react-native";
+import { Platform, Image, View, TouchableOpacity } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import {
   Home,
@@ -118,10 +117,13 @@ function BottomTabBar(props: BottomTabBarProps) {
             };
 
             const pressable = (
-              <Pressable
+              <TouchableOpacity
                 key={item.name}
-                className="flex-1 items-center justify-center"
-                onPress={() => props.navigation.navigate(item.path)}
+                style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+                onPress={() => {
+                  console.log("🔍 Pressed tab:", item.name);
+                  props.navigation.navigate(item.path); // we'll fix this string next if needed
+                }}
               >
                 <Box style={{ position: "relative", alignItems: "center" }}>
                   {isProfileTab && avatarUrl ? (
@@ -179,53 +181,56 @@ function BottomTabBar(props: BottomTabBarProps) {
                 >
                   {item.label}
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             );
 
             return (
               <View key={`${item.name}-wrapper`} style={{ flex: 1 }}>
-                <Tooltip
-                  key={`${item.name}-tooltip`}
-                  isVisible={isTooltipVisible}
-                  content={
-                    <View style={{ alignItems: "center" }}>
-                      <Icon
-                        as={item.icon}
-                        size="xl"
-                        className="text-primary-800"
-                        style={{ marginBottom: 8 }}
-                      />
-                      <Text style={{ color: "#fff", fontSize: 14, textAlign: "center" }}>
-                        {currentStep.message}
-                      </Text>
-                      <Text
-                        style={{
-                          color: "#FFD700",
-                          fontWeight: "bold",
-                          marginTop: 6,
-                          textAlign: "center",
-                        }}
-                        onPress={handleNext}
-                      >
-                        Next
-                      </Text>
-                      
-                    </View>
-                  }
+                {isTooltipVisible ? (
+                  <Tooltip
+                    key={`${item.name}-tooltip`}
+                    isVisible={isTooltipVisible}
+                    content={
+                      <View style={{ alignItems: "center" }}>
+                        <Icon
+                          as={item.icon}
+                          size="xl"
+                          className="text-primary-800"
+                          style={{ marginBottom: 8 }}
+                        />
+                        <Text style={{ color: "#fff", fontSize: 14, textAlign: "center" }}>
+                          {currentStep.message}
+                        </Text>
+                        <Text
+                          style={{
+                            color: "#FFD700",
+                            fontWeight: "bold",
+                            marginTop: 6,
+                            textAlign: "center",
+                          }}
+                          onPress={handleNext}
+                        >
+                          Next
+                        </Text>
 
-                  placement="top"
-                  backgroundColor="rgba(0, 0, 0, 0.92)"
-                  contentStyle={{
-                    backgroundColor: "#000",
-                    padding: 12,
-                    borderRadius: 12,
-                    maxWidth: 200,
-                  }}
-                  arrowStyle={{ borderTopColor: "#000" }}
-                  onClose={handleNext}
-                >
-                  {pressable}
-                </Tooltip>
+                      </View>
+                    }
+
+                    placement="top"
+                    backgroundColor="rgba(0, 0, 0, 0.92)"
+                    contentStyle={{
+                      backgroundColor: "#000",
+                      padding: 12,
+                      borderRadius: 12,
+                      maxWidth: 200,
+                    }}
+                    arrowStyle={{ borderTopColor: "#000" }}
+                    onClose={handleNext}
+                  >
+                  </Tooltip>
+                ) : (
+                  pressable
+                )}
               </View>
             );
           })}
