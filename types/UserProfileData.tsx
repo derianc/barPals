@@ -10,4 +10,5 @@ export interface UserProfileData {
   allow_notifications: boolean;
   created_at: string;
   updated_at: string;
+  has_seen_tooltips: boolean;
 }
