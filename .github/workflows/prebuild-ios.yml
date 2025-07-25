@@ -19,7 +19,7 @@ jobs:
           node-version: 18
 
       - name: 📁 Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: 🛠️ Run Expo prebuild for iOS
         run: npx expo prebuild --platform ios --non-interactive
