@@ -95,8 +95,8 @@ Project background_fetch = project(':react-native-background-fetch')
         applicationId 'com.derianc.BarPals'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 132
-        versionName "1.1.18"
+        versionCode 133
+        versionName "1.1.19"
     }
     signingConfigs {
         debug {

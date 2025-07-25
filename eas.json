@@ -24,7 +24,11 @@
       },
       "env": {
         "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
-        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
+        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715",
+        "EXPO_USE_MODULAR_HEADERS": "1"
+      },
+      "hooks": {
+        "post-install": "node scripts/patch-podfile.js"
       }
     },
     "production": {
@@ -33,10 +37,14 @@
       "distribution": "store",
       "env": {
         "GOOGLE_PLACES_API_KEY": "AIzaSyCePr7GP-ibJiYxa5vylbCldEFEn2yoRKw",
-        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715"
+        "OPEN_CAGE_API_KEY": "cb523e69e8784a14a5449c7af9b02715",
+        "EXPO_USE_MODULAR_HEADERS": "1"
       },
       "android": {
         "buildType": "app-bundle"
+      },
+      "hooks": {
+        "post-install": "node scripts/patch-podfile.js"
       }
     }
   },
