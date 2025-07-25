@@ -24,13 +24,24 @@ jobs:
       - name: 🛠️ Run Expo prebuild for iOS
         run: npx expo prebuild --platform ios --non-interactive
 
+      - name: 🩹 Inject use_modular_headers! into Podfile
+        run: |
+          PODFILE="ios/Podfile"
+          if grep -q "target 'BarPals'" "$PODFILE"; then
+            sed -i '' "/target 'BarPals'/a\\
+            \ \ use_modular_headers!
+            " "$PODFILE"
+          else
+            echo "❌ Target not found in Podfile"
+            cat "$PODFILE"
+            exit 1
+          fi
+
       - name: 💎 Install CocoaPods CLI
         run: sudo gem install cocoapods
 
       - name: 📦 Install iOS Pods
-        run: |
-          cd ios
-          pod install
+        run: cd ios && pod install
 
       - name: 📤 Upload ios/ directory as artifact
         uses: actions/upload-artifact@v4
