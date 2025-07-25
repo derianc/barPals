@@ -9,7 +9,7 @@ export default ({ config }) => {
     ...config,
     name: suffix ? `BarPals ${suffix}` : 'BarPals',
     slug: 'BarPals',
-    version: '1.1.19',
+    version: '1.1.29',
     orientation: 'portrait',
     icon: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`, // optionally different icons
     scheme: 'barpals',
@@ -18,7 +18,7 @@ export default ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `com.derianc.BarPals${suffix}`,
-      buildNumber: '1.1.19',
+      buildNumber: '1.1.29',
       runtimeVersion: 'stable',
       infoPlist: {
         UIBackgroundModes: ['location', 'fetch', 'remote-notification'],
@@ -34,7 +34,7 @@ export default ({ config }) => {
         foregroundImage: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`,
         backgroundColor: '#ffffff'
       },
-      "versionCode": 133,
+      "versionCode": 143,
       runtimeVersion: 'stable',
       softwareKeyboardLayoutMode: 'pan',
       permissions: [
@@ -79,6 +79,7 @@ export default ({ config }) => {
         'expo-build-properties',
         {
           ios: {
+            deploymentTarget: '15.1',
             useModularHeaders: true
           }
         }

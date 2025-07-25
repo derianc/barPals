@@ -8691,6 +8691,11 @@ react-native-modal@^14.0.0-rc.1:
   dependencies:
     react-native-animatable "1.4.0"
 
+react-native-notifications@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/react-native-notifications/-/react-native-notifications-5.1.0.tgz#8cba105fd57ab9d5df9d27284acf1e2b4f3d7ea3"
+  integrity sha512-laqDSDlCvEASmJR6cXpqaryK855ejQd07vrfYERzhv68YDOoSkKy/URExRP4vAfAOVqHhix80tLbNUcfvZk2VQ==
+
 react-native-qrcode-svg@^6.3.15:
   version "6.3.15"
   resolved "https://registry.yarnpkg.com/react-native-qrcode-svg/-/react-native-qrcode-svg-6.3.15.tgz#20d7a189dff5b7ee8a75222a1268a805497cac75"

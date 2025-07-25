@@ -15,7 +15,7 @@
     "build-dev": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=development expo prebuild && eas build --profile development --platform android",
     "build-preview": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=preview expo prebuild && eas build --profile preview --platform android",
     "build-prod-android": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=production expo prebuild && eas build --profile production --platform android",
-    "build-prod-ios": "yarn bump-runtime && yarn bump-version && cross-env EAS_BUILD_PROFILE=production expo prebuild && eas build --profile production --platform ios",
+    "build-prod-ios": "yarn bump-runtime && yarn bump-version && eas build --profile production --platform ios",
     "publish-preview": "yarn bump-version && eas update --branch preview",
     "publish-dev": "yarn bump-version && eas update --branch development",
     "publish-prod": "yarn bump-version && eas build --platform android --profile production --auto-submit"
@@ -122,6 +122,7 @@
     "react-native-maps": "1.20.1",
     "react-native-modal": "^14.0.0-rc.1",
     "react-native-modal-dropdown": "^1.0.2",
+    "react-native-notifications": "^5.1.0",
     "react-native-qrcode-svg": "^6.3.15",
     "react-native-raw-bottom-sheet": "^3.0.0",
     "react-native-reanimated": "~3.17.4",
