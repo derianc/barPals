@@ -1,9 +1,9 @@
 name: Expo Prebuild iOS
 
 on:
-  workflow_dispatch:  # Run manually
+  workflow_dispatch:
   push:
-    branches: [main]  # Or your main branch
+    branches: [main]
 
 jobs:
   prebuild-ios:
@@ -24,7 +24,15 @@ jobs:
       - name: 🛠️ Run Expo prebuild for iOS
         run: npx expo prebuild --platform ios --non-interactive
 
-      - name: 📦 Upload ios/ directory as artifact
+      - name: 💎 Install CocoaPods CLI
+        run: sudo gem install cocoapods
+
+      - name: 📦 Install iOS Pods
+        run: |
+          cd ios
+          pod install
+
+      - name: 📤 Upload ios/ directory as artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-prebuild
