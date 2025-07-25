@@ -3,26 +3,16 @@ import {
   View,
   Image,
   StyleSheet,
-  TouchableOpacity,
   ActivityIndicator,
-  Alert,
-  Text,
-  TextInput,
-  Switch,
-  Pressable
-} from "react-native";
-//import * as DocumentPicker from 'expo-document-picker';
+  Text} from "react-native";
 import { VStack } from "@/components/ui/vstack";
 import UserProfileHeader from "@/components/shared/custom-header/userProfileHeader";
-import { Camera } from "lucide-react-native";
 import { Icon } from "@/components/ui/icon";
-import { Calendar, Bell } from "lucide-react-native";
+import { Calendar } from "lucide-react-native";
 import OwnerProfileCard from "@/components/screens/ownerProfile/profile-card/ownerProfileCard";
 import { getVenuesForProfile } from "@/services/sbVenueService";
 import { useUser } from "@/contexts/userContext";
 import { Venue } from "@/types/Venue";
-import { router } from "expo-router";
-import { Text as AppText } from "@/components/ui/text";
 
 const OwnerProfileDetails = () => {
   const [loading, setLoading] = useState(true);
@@ -63,10 +53,6 @@ const OwnerProfileDetails = () => {
         ) : (
           <View style={styles.avatarImage} />
         )}
-
-        <TouchableOpacity style={styles.cameraButton} >
-          <Camera size={16} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Username + Join Date */}
@@ -98,6 +84,8 @@ const OwnerProfileDetails = () => {
     </VStack>
   );
 };
+
+export default OwnerProfileDetails;
 
 const styles = StyleSheet.create({
   loader: {
@@ -182,4 +170,3 @@ const styles = StyleSheet.create({
 
 });
 
-export default OwnerProfileDetails;

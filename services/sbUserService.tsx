@@ -192,3 +192,21 @@ export async function createOrUpdateUserProfile(user: any, userId: string) {
     // console.log("✅ Profile upserted successfully");
   }
 }
+
+export async function searchOwnersByEmail(query: string) {
+  if (!query || query.trim().length < 2) return [];
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .ilike("email", `%${query.trim().toLocaleLowerCase()}%`)
+    .eq("role", "owner")
+    .limit(10);
+
+  if (error) {
+    console.error("❌ Failed to search owners by email:", error.message);
+    return [];
+  }
+
+  return data || [];
+}

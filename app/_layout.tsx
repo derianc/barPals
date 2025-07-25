@@ -101,11 +101,11 @@ const LayoutInner = () => {
     }
   }, [reloadTimeoutReached]);
 
-  console.group("🧬 Layout Load Check");
-  console.log("fontsLoaded:", fontsLoaded);
-  console.log("rehydrated:", rehydrated);
-  console.log("user:", JSON.stringify(user).slice(0, 51), "...}");
-  console.groupEnd();
+  // console.group("🧬 Layout Load Check");
+  // console.log("fontsLoaded:", fontsLoaded);
+  // console.log("rehydrated:", rehydrated);
+  // console.log("user:", JSON.stringify(user).slice(0, 51), "...}");
+  // console.groupEnd();
 
   if (!fontsLoaded || !rehydrated || !onboardingChecked) {
     return (

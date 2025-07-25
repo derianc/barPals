@@ -114,18 +114,7 @@ const OwnerProfileCard = ({
                     />
                 </HStack>
             </AnimatedPressable>
-
-            <View style={styles.registerCard}>
-                <Pressable onPress={() => router.push("/(tabs)/(ownerRegisterVenue)")}>
-                    <HStack style={styles.row}>
-                        <View style={styles.iconContainer}>
-                            <Icon as={Store} size="sm" color="#fff" />
-                        </View>
-                        <AppText style={styles.label}>Register New Venue</AppText>
-                    </HStack>
-                </Pressable>
-            </View>
-
+            
             <View style={styles.venueDropdownContainer}>
                 <AppText style={styles.dropdownLabel}>Your Venues</AppText>
 

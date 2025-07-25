@@ -12,12 +12,16 @@ import {
   Map as MapIcon,
   TagIcon,
   User,
+  Settings,
+  Building,
+  Users2,
 } from "lucide-react-native";
 import { useUser } from "@/contexts/userContext";
 import { useOfferNotificationSubscription } from "@/hooks/useOfferNotificationSubscription";
 import Tooltip from "react-native-walkthrough-tooltip";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/supabase";
+import TooltipModal from "../tooltip/TooltipModal";
 
 interface TabItem {
   name: string;
@@ -34,6 +38,8 @@ function BottomTabBar(props: BottomTabBarProps) {
   const { notificationCount } = useOfferNotificationSubscription();
   const [step, setStep] = useState(0);
   const [showTooltips, setShowTooltips] = useState(user?.has_seen_tooltips === false);
+  const tabRefs = useRef<(View | null)[]>([]);
+  const [tabX, setTabX] = useState<number>(0);
 
   const tooltipSteps = userType === "owner"
     ? [
@@ -45,10 +51,10 @@ function BottomTabBar(props: BottomTabBarProps) {
     ]
     : userType === "admin"
       ? [
-        { name: "(ownerHome)", message: "Admin dashboard and metrics." },
-        { name: "(ownerFeed)", message: "Review user receipts and actions." },
-        { name: "(ownerMap)", message: "Oversee geographic user activity." },
-        { name: "(ownerOffers)", message: "View and manage all offers." },
+        { name: "(adminHome)", message: "Admin dashboard and metrics." },
+        { name: "(adminVenues)", message: "Review user receipts and actions." },
+        { name: "(adminUsers)", message: "Oversee geographic user activity." },
+        { name: "(adminOffers)", message: "View and manage all offers." },
         { name: "(ownerProfile)", message: "Admin profile and user management." },
       ]
       : [
@@ -70,11 +76,11 @@ function BottomTabBar(props: BottomTabBarProps) {
       ]
       : userType === "admin"
         ? [
-          { name: "(ownerHome)", label: "Dashboard", path: "(ownerHome)", icon: Home },
-          { name: "(ownerFeed)", label: "Audit", path: "(ownerFeed)/index", icon: List },
-          { name: "(ownerMap)", label: "Map", path: "(ownerMap)/index", icon: MapIcon },
-          { name: "(ownerOffers)", label: "Offers", path: "(ownerOffers)/index", icon: TagIcon },
-          { name: "(ownerProfile)", label: "Admin", path: "(ownerProfile)/index", icon: User },
+          { name: "(adminHome)", label: "Dashboard", path: "(adminHome)", icon: Home },
+          { name: "(adminVenues)", label: "Venues", path: "(adminVenues)/index", icon: Building },
+          { name: "(adminUsers)", label: "Users", path: "(adminUsers)/index", icon: Users2 },
+          { name: "(adminOffers)", label: "Offers", path: "(adminOffers)/index", icon: TagIcon },
+          { name: "(ownerProfile)", label: "Settings", path: "(ownerProfile)/index", icon: Settings },
         ]
         : [
           { name: "(userHome)", label: "Home", path: "(userHome)", icon: Home },
@@ -84,160 +90,135 @@ function BottomTabBar(props: BottomTabBarProps) {
           { name: "(userProfile)", label: "Settings", path: "(userProfile)/index", icon: User },
         ];
 
+        
+
+  useEffect(() => {
+    const targetIndex = tabItems.findIndex(t => t.name === tooltipSteps[step]?.name);
+    const tabRef = tabRefs.current[targetIndex];
+
+    if (tabRef) {
+      tabRef.measureInWindow((x, y, width) => {
+        setTabX(x + width / 2); // center of the tab
+      });
+    }
+  }, [step, tabItems]);
+
+  const handleNext = async () => {
+    if (step < tooltipSteps.length - 1) {
+      setStep((prev) => prev + 1);
+    } else {
+      setShowTooltips(false);
+      await supabase
+        .from("profiles")
+        .update({ has_seen_tooltips: true })
+        .eq("id", user?.id);
+    }
+  };
 
   return (
-    <View style={{ position: "relative" }}>
-      <Box className="bg-background-0">
-        <HStack
-          className="bg-background-0 pt-4 px-7 rounded-t-3xl min-h-[78px]"
-          style={{
-            paddingBottom: Platform.OS === "ios" ? insets.bottom : 16,
-            boxShadow: "0px -10px 12px 0px rgba(0, 0, 0, 0.04)",
-            justifyContent: "space-between",
-          }}
-        >
-          {tabItems.map((item, index) => {
-            const isActive = props.state.routeNames[props.state.index] === item.path;
-            const isProfileTab = item.name === "(userProfile)" || item.name === "(ownerProfile)";
-            const isOffersTab = item.name === "(userOffers)";
-            const currentStep = tooltipSteps[step];
-            const isTooltipVisible =
-              showTooltips && currentStep?.name === item.name;
+  <View style={{ position: "relative" }}>
+    <Box className="bg-background-0">
+      <HStack
+        className="bg-background-0 pt-4 px-7 rounded-t-3xl min-h-[78px]"
+        style={{
+          paddingBottom: Platform.OS === "ios" ? insets.bottom : 16,
+          justifyContent: "space-between",
+        }}
+      >
+        {tabItems.map((item, index) => {
+          const isActive = props.state.routeNames[props.state.index] === item.path;
+          const isProfileTab = item.name === "(userProfile)" || item.name === "(ownerProfile)";
+          const isOffersTab = item.name === "(userOffers)";
 
-            const handleNext = async () => {
-              if (step < tooltipSteps.length - 1) {
-                setStep((prev) => prev + 1);
-              } else {
-                setShowTooltips(false);
-                await supabase
-                  .from("profiles")
-                  .update({ has_seen_tooltips: true })
-                  .eq("id", user?.id);
-              }
-            };
-
-            const pressable = (
-              <TouchableOpacity
-                key={item.name}
-                style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-                onPress={() => {
-                  console.log("🔍 Pressed tab:", item.name);
-                  props.navigation.navigate(item.path); // we'll fix this string next if needed
-                }}
-              >
-                <Box style={{ position: "relative", alignItems: "center" }}>
-                  {isProfileTab && avatarUrl ? (
-                    <Image
-                      source={{ uri: avatarUrl }}
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 13,
-                        borderWidth: 2,
-                        borderColor: isActive ? "#6A11CB" : "#9CA3AF",
-                      }}
-                    />
-                  ) : (
-                    <Icon
-                      as={item.icon}
-                      size="xl"
-                      className={`${isActive ? "text-primary-800" : "text-background-500"
-                        }`}
-                    />
-                  )}
-
-                  {isOffersTab && notificationCount > 0 && (
-                    <Box
-                      style={{
-                        position: "absolute",
-                        top: -6,
-                        right: -12,
-                        minWidth: 16,
-                        height: 16,
-                        borderRadius: 8,
-                        backgroundColor: "red",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        paddingHorizontal: 4,
-                      }}
-                    >
-                      <Text
-                        size="2xs"
-                        style={{
-                          color: "white",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {notificationCount > 99 ? "99+" : notificationCount}
-                      </Text>
-                    </Box>
-                  )}
-                </Box>
-
-                <Text
-                  size="xs"
-                  className={`mt-1 font-medium ${isActive ? "text-primary-800" : "text-background-500"
-                    }`}
-                >
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            );
-
-            return (
-              <View key={`${item.name}-wrapper`} style={{ flex: 1 }}>
-                {isTooltipVisible ? (
-                  <Tooltip
-                    key={`${item.name}-tooltip`}
-                    isVisible={isTooltipVisible}
-                    content={
-                      <View style={{ alignItems: "center" }}>
-                        <Icon
-                          as={item.icon}
-                          size="xl"
-                          className="text-primary-800"
-                          style={{ marginBottom: 8 }}
-                        />
-                        <Text style={{ color: "#fff", fontSize: 14, textAlign: "center" }}>
-                          {currentStep.message}
-                        </Text>
-                        <Text
-                          style={{
-                            color: "#FFD700",
-                            fontWeight: "bold",
-                            marginTop: 6,
-                            textAlign: "center",
-                          }}
-                          onPress={handleNext}
-                        >
-                          Next
-                        </Text>
-
-                      </View>
-                    }
-
-                    placement="top"
-                    backgroundColor="rgba(0, 0, 0, 0.92)"
-                    contentStyle={{
-                      backgroundColor: "#000",
-                      padding: 12,
-                      borderRadius: 12,
-                      maxWidth: 200,
+          const pressable = (
+            <TouchableOpacity
+              key={item.name}
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 4,
+              }}
+              onPress={() => {
+                // console.log("🔍 Pressed tab:", item.name);
+                props.navigation.navigate(item.path);
+              }}
+            >
+              <Box style={{ position: "relative", alignItems: "center" }}>
+                {isProfileTab && avatarUrl ? (
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      borderWidth: 2,
+                      borderColor: isActive ? "#6A11CB" : "#9CA3AF",
                     }}
-                    arrowStyle={{ borderTopColor: "#000" }}
-                    onClose={handleNext}
-                  >
-                  </Tooltip>
+                  />
                 ) : (
-                  pressable
+                  <Icon
+                    as={item.icon}
+                    size="xl"
+                    className={isActive ? "text-primary-800" : "text-background-500"}
+                  />
                 )}
-              </View>
-            );
-          })}
-        </HStack>
-      </Box>
-    </View>
-  );
+
+                {isOffersTab && notificationCount > 0 && (
+                  <Box
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -12,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      backgroundColor: "red",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <Text size="2xs" style={{ color: "white", fontWeight: "bold" }}>
+                      {notificationCount > 99 ? "99+" : notificationCount}
+                    </Text>
+                  </Box>
+                )}
+              </Box>
+
+              <Text
+                size="xs"
+                className={`mt-1 font-medium ${isActive ? "text-primary-800" : "text-background-500"}`}
+              >
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+
+          return (
+            <View
+              key={`${item.name}-wrapper`}
+              style={{ flex: 1 }}
+              ref={(el) => { tabRefs.current[index] = el as View }}
+            >
+              {pressable}
+            </View>
+          );
+        })}
+      </HStack>
+    </Box>
+
+    {/* ✅ Overlay tooltip modal after rendering tabs */}
+      {showTooltips && tooltipSteps[step] && (
+        <TooltipModal
+          isVisible={true}
+          onNext={handleNext}
+          icon={tooltipSteps[step]?.name ? tabItems.find(t => t.name === tooltipSteps[step]?.name)?.icon ?? Home : Home}
+          message={tooltipSteps[step].message}
+          tabX={tabX} // ✅ actual measured tab position
+        />
+      )}
+  </View>
+);
 
 }
 
