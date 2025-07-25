@@ -1,0 +1,31 @@
+name: Expo Prebuild iOS
+
+on:
+  workflow_dispatch:  # Run manually
+  push:
+    branches: [main]  # Or your main branch
+
+jobs:
+  prebuild-ios:
+    runs-on: macos-13
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: 📁 Install dependencies
+        run: npm ci
+
+      - name: 🛠️ Run Expo prebuild for iOS
+        run: npx expo prebuild --platform ios --non-interactive
+
+      - name: 📦 Upload ios/ directory as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-prebuild
+          path: ios/
