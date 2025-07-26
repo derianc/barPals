@@ -28,14 +28,22 @@ jobs:
         run: |
           PODFILE="ios/Podfile"
           if grep -q "target 'BarPals'" "$PODFILE"; then
+            echo "✅ Found target, injecting use_modular_headers!"
             sed -i '' "/target 'BarPals'/a\\
-            \ \ use_modular_headers!
+              \ \ use_modular_headers!
             " "$PODFILE"
           else
-            echo "❌ Target not found in Podfile"
+            echo "❌ target 'BarPals' not found"
             cat "$PODFILE"
             exit 1
           fi
+
+      - name: 🔧 Force use_frameworks dynamic linkage
+        run: |
+          PODFILE="ios/Podfile"
+          sed -i '' 's/use_frameworks! :linkage => .*/use_frameworks! :linkage => :dynamic/' "$PODFILE"
+          echo "📄 Podfile after patch:"
+          cat "$PODFILE"
 
       - name: 💎 Install CocoaPods CLI
         run: sudo gem install cocoapods
