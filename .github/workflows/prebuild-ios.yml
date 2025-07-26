@@ -1,0 +1,36 @@
+name: Regenerate iOS Folder
+
+on:
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  regen-ios:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: 📦 Install Dependencies
+        run: |
+          yarn install --frozen-lockfile
+          npx expo install --fix
+
+      - name: 🧹 Remove old ios folder
+        run: rm -rf ios
+
+      - name: ⚙️ Run expo prebuild (iOS only)
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: 🗃️ Upload iOS Folder as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-folder
+          path: ios
