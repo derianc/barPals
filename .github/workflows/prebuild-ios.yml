@@ -1,58 +1,43 @@
-name: Expo Prebuild iOS
+name: 🔁 Clean Rebuild iOS with EAS (no Hermes patch)
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  prebuild-ios:
-    runs-on: macos-13
+  eas-ios-clean:
+    name: 🧼 EAS Clean iOS Build
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 📦 Checkout code
+      - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Set up Node.js
+      - name: 🧹 Remove stale Podfile.lock and Pods
+        run: |
+          rm -rf ios/Podfile.lock ios/Pods
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add ios/Podfile.lock ios/Pods || true
+          git commit -m "chore: remove Podfile.lock and Pods to force clean EAS rebuild" || true
+          git push || true
+
+      - name: ⚙️ Setup Node & Yarn
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: 📁 Install dependencies
-        run: npm install
+      - name: 📦 Install dependencies
+        run: yarn install --immutable
 
-      - name: 🛠️ Run Expo prebuild for iOS
-        run: npx expo prebuild --platform ios --non-interactive
+      - name: 🏗️ EAS Build (iOS clean)
+        run: npx eas build --platform ios --profile preview --clear-cache --non-interactive
 
-      - name: 🩹 Inject use_modular_headers! into Podfile
-        run: |
-          PODFILE="ios/Podfile"
-          if grep -q "target 'BarPals'" "$PODFILE"; then
-            echo "✅ Found target, injecting use_modular_headers!"
-            sed -i '' "/target 'BarPals'/a\\
-              \ \ use_modular_headers!
-            " "$PODFILE"
-          else
-            echo "❌ target 'BarPals' not found"
-            cat "$PODFILE"
-            exit 1
-          fi
-
-      - name: 🔧 Force use_frameworks dynamic linkage
-        run: |
-          PODFILE="ios/Podfile"
-          sed -i '' 's/use_frameworks! :linkage => .*/use_frameworks! :linkage => :dynamic/' "$PODFILE"
-          echo "📄 Podfile after patch:"
-          cat "$PODFILE"
-
-      - name: 💎 Install CocoaPods CLI
-        run: sudo gem install cocoapods
-
-      - name: 📦 Install iOS Pods
-        run: cd ios && pod install
-
-      - name: 📤 Upload ios/ directory as artifact
+      - name: ✅ Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ios-prebuild
-          path: ios/
+          name: eas-ios-artifacts
+          path: dist
