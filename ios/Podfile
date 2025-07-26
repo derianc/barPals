@@ -42,7 +42,7 @@ target 'BarPals' do
 
   use_react_native!(
     path: config[:reactNativePath],
-    hermes_enabled: podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    hermes_enabled: podfile_properties['expo.jsEngine'] == 'hermes',
     app_path: "#{Pod::Config.instance.installation_root}/..",
     privacy_file_aggregation_enabled: podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false'
   )
@@ -54,15 +54,6 @@ target 'BarPals' do
       mac_catalyst_enabled: false,
       ccache_enabled: podfile_properties['apple.ccacheEnabled'] == 'true'
     )
-
-    # ✅ Only patch GoogleUtilities
-    installer.pods_project.targets.each do |target|
-      if target.name == 'GoogleUtilities'
-        target.build_configurations.each do |config|
-          config.build_settings['DEFINES_MODULE'] = 'YES'
-        end
-      end
-    end
 
     # ✅ Disable code signing for resource bundles
     installer.target_installation_results.pod_target_installation_results
