@@ -16,7 +16,7 @@ jobs:
       - name: 🟢 Set up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20.18.1
 
       - name: 📦 Install Dependencies
         run: |
