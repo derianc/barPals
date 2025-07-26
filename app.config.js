@@ -9,7 +9,7 @@ export default ({ config }) => {
     ...config,
     name: suffix ? `BarPals ${suffix}` : 'BarPals',
     slug: 'BarPals',
-    version: '1.1.29',
+    version: '1.1.44',
     orientation: 'portrait',
     icon: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`, // optionally different icons
     scheme: 'barpals',
@@ -18,7 +18,7 @@ export default ({ config }) => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: `com.derianc.BarPals${suffix}`,
-      buildNumber: '1.1.29',
+      buildNumber: '1.1.44',
       runtimeVersion: 'stable',
       infoPlist: {
         UIBackgroundModes: ['location', 'fetch', 'remote-notification'],
@@ -34,7 +34,7 @@ export default ({ config }) => {
         foregroundImage: `./assets/icons/appIcon${suffix ? `-${lowerSuffix}` : ''}.png`,
         backgroundColor: '#ffffff'
       },
-      "versionCode": 143,
+      "versionCode": 158,
       runtimeVersion: 'stable',
       softwareKeyboardLayoutMode: 'pan',
       permissions: [
