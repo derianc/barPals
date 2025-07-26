@@ -1,4 +1,4 @@
-name: 🔁 Clean Rebuild iOS and Push Updated Podfile.lock
+name: 🔁 Clean Rebuild iOS and Push Podfile.lock
 
 on:
   workflow_dispatch:
@@ -31,15 +31,15 @@ jobs:
       - name: 📥 Install EAS CLI
         run: npm install -g eas-cli
 
-      - name: 🏗️ Run clean EAS iOS build (no cache)
+      - name: 🏗️ Run clean EAS iOS build
         run: eas build --platform ios --profile preview --clear-cache --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🔄 Commit updated Podfile.lock if changed
+      - name: 🔄 Commit regenerated Podfile.lock
         run: |
           git config user.name "EAS Bot"
           git config user.email "eas-ci@users.noreply.github.com"
           git add ios/Podfile.lock || true
-          git diff --quiet && git diff --staged --quiet || git commit -m "🔄 Rebuilt iOS folder and regenerated Podfile.lock"
+          git diff --quiet && git diff --staged --quiet || git commit -m "🔄 Update Podfile.lock after clean EAS build"
           git push
