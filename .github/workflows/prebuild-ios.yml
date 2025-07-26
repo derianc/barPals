@@ -1,4 +1,4 @@
-name: 🔁 Clean Rebuild iOS and Push Updated Pods
+name: 🔁 Clean Rebuild iOS and Push Updated Podfile.lock
 
 on:
   workflow_dispatch:
@@ -8,18 +8,17 @@ on:
 
 jobs:
   eas-ios-clean:
-    name: 🧼 EAS Clean iOS Build & Push iOS Folder
+    name: 🧼 EAS Clean iOS Build & Push Podfile.lock
     runs-on: ubuntu-latest
 
     steps:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed to push back
+          fetch-depth: 0
 
-      - name: 🧹 Remove stale Podfile.lock and Pods
-        run: |
-          rm -rf ios/Podfile.lock ios/Pods
+      - name: 🧹 Remove stale Podfile.lock
+        run: rm -f ios/Podfile.lock
 
       - name: ⚙️ Setup Node & Yarn
         uses: actions/setup-node@v4
@@ -33,12 +32,14 @@ jobs:
         run: npm install -g eas-cli
 
       - name: 🏗️ Run clean EAS iOS build (no cache)
-        run: npx eas build --platform ios --profile preview --clear-cache --non-interactive
+        run: eas build --platform ios --profile preview --clear-cache --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🔄 Commit updated iOS folder (lockfile and Pods)
+      - name: 🔄 Commit updated Podfile.lock if changed
         run: |
           git config user.name "EAS Bot"
           git config user.email "eas-ci@users.noreply.github.com"
-          git add ios/Podfile.lock ios/Pods || true
+          git add ios/Podfile.lock || true
           git diff --quiet && git diff --staged --quiet || git commit -m "🔄 Rebuilt iOS folder and regenerated Podfile.lock"
           git push
