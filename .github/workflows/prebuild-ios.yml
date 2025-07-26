@@ -20,7 +20,7 @@ jobs:
 
       - name: 📦 Install Dependencies
         run: |
-          npm ci
+          yarn install --frozen-lockfile
           npx expo install --fix
 
       - name: 🧹 Remove old ios folder
