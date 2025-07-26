@@ -1,18 +1,37 @@
-#!/bin/bash
+name: Regenerate iOS Folder
 
-# --- regen-ios.sh ---
-# Deletes current ios folder, runs prebuild, and patches Podfile
+on:
+  workflow_dispatch: # run manually
 
-set -e
+jobs:
+  regen-ios:
+    runs-on: ubuntu-latest
 
-echo "🧹 Removing old ios folder..."
-rm -rf ios
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # needed if pushing back
 
-echo "🔧 Running Expo prebuild to regenerate ios folder..."
-EXPO_NO_CACHE=true expo prebuild --platform ios --clean --no-install
+      - name: 🟢 Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-echo "🧩 Patching Podfile..."
-cat > ios/Podfile <<'EOF'
+      - name: 📦 Install Dependencies
+        run: |
+          npm ci
+          npx expo install --fix
+
+      - name: 🧹 Remove old ios folder
+        run: rm -rf ios
+
+      - name: ⚙️ Run expo prebuild (iOS only)
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: 🧩 Patch Podfile
+        run: |
+          cat > ios/Podfile <<'EOF'
 require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
 require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
 
@@ -44,8 +63,19 @@ target 'BarPals' do
 end
 EOF
 
-echo "📦 Installing pods..."
-cd ios
-pod install
+      # Option A: Push the regenerated ios folder back to the repo
+      - name: 🚀 Commit and Push Changes
+        if: ${{ github.actor != 'github-actions[bot]' }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add ios
+          git commit -m "🤖 Regenerated ios folder via GitHub Action"
+          git push
 
-echo "✅ iOS folder regenerated and patched successfully."
+      # Option B: Upload ios folder as downloadable artifact
+      - name: 🗃️ Upload iOS Folder as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-folder
+          path: ios
