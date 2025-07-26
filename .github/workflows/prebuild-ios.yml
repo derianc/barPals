@@ -29,6 +29,9 @@ jobs:
       - name: 📦 Install dependencies
         run: yarn install --immutable
 
+      - name: 📥 Install EAS CLI
+        run: npm install -g eas-cli
+
       - name: 🏗️ Run clean EAS iOS build (no cache)
         run: npx eas build --platform ios --profile preview --clear-cache --non-interactive
 
