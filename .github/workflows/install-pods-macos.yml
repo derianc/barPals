@@ -16,14 +16,16 @@ jobs:
         with:
           node-version: 20.18.1
 
-      - name: 📦 Install JS dependencies
-        run: yarn install --frozen-lockfile
+      - name: 📦 Install JS dependencies and CLI
+        run: |
+          yarn install --frozen-lockfile
+          yarn add -D @react-native-community/cli
 
       - name: 🍎 Install Pods
         run: pod install --repo-update
         working-directory: ios
 
-      - name: 📦 Upload Patched iOS Folder
+      - name: 📦 Upload Pod-installed iOS Folder
         uses: actions/upload-artifact@v4
         with:
           name: ios-after-pods
