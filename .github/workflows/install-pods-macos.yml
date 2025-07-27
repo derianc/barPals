@@ -21,8 +21,8 @@ jobs:
           yarn install --frozen-lockfile
           yarn add -D @react-native-community/cli
 
-      - name: 🍎 Install Pods
-        run: pod install --repo-update
+      - name: 🍎 Install Pods (with repo update)
+        run: pod install --repo-update --verbose
         working-directory: ios
 
       - name: 📦 Upload Pod-installed iOS Folder
