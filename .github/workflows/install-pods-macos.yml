@@ -1,0 +1,32 @@
+name: Install Pods on macOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pod-install:
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout
+        uses: actions/checkout@v3
+
+      - name: 🟢 Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.18.1
+
+      - name: 📦 Install JS dependencies and CLI
+        run: |
+          yarn install --frozen-lockfile
+          yarn add -D @react-native-community/cli
+
+      - name: 🍎 Install Pods
+        run: pod install --repo-update
+        working-directory: ios
+
+      - name: 📦 Upload Pod-installed iOS Folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-after-pods
+          path: ios
