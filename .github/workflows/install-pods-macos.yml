@@ -11,11 +11,19 @@ jobs:
       - name: ⬇️ Checkout
         uses: actions/checkout@v3
 
+      - name: 🟢 Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.18.1
+
+      - name: 📦 Install JS dependencies
+        run: yarn install --frozen-lockfile
+
       - name: 🍎 Install Pods
         run: pod install --repo-update
         working-directory: ios
 
-      - name: 📦 Upload Pod-installed iOS folder
+      - name: 📦 Upload Patched iOS Folder
         uses: actions/upload-artifact@v4
         with:
           name: ios-after-pods
